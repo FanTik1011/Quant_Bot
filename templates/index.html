@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Кадровий аудит</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        input, select, button {
+            margin: 8px 0;
+            padding: 8px;
+            width: 100%;
+            border-radius: 6px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Кадровий аудит</h1>
+        <p>👤 Ви увійшли як <strong>{{ username }}</strong></p>
+        <a href="/logout">🚪 Вийти</a>
+        <hr>
+
+        <form method="POST">
+            <label for="user_search">🔍 Пошук по ніку:</label>
+            <input type="text" id="user_search" oninput="filterUsers()">
+
+            <label for="user_id">👤 Оберіть користувача:</label>
+            <select name="user_id" id="user_select" required>
+                {% for name, uid in members %}
+                    <option value="{{ uid }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="action">⚙️ Дія:</label>
+            <select name="action" id="action" onchange="toggleRoleSelect()" required>
+                <option value="promote">Підвищення</option>
+                <option value="demote">Пониження</option>
+                <option value="kick">Вигнання</option>
+                <option value="join">Щойно вступив</option>
+            </select>
+
+            <div id="role_block">
+                <label for="role_id">🎖️ Нова роль:</label>
+                <select name="role_id">
+                    {% for name, rid in roles %}
+                        <option value="{{ rid }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <label for="reason">📝 Причина:</label>
+            <input type="text" name="reason" required>
+
+            <label for="author">✍️ Автор дії:</label>
+            <input type="text" name="author" required>
+
+            <button type="submit">✅ Підтвердити</button>
+        </form>
+    </div>
+
+    <script>
+        function toggleRoleSelect() {
+            const action = document.getElementById("action").value;
+            document.getElementById("role_block").style.display = (action === "kick" || action === "join") ? "none" : "block";
+        }
+
+        function filterUsers() {
+            const input = document.getElementById("user_search").value.toLowerCase();
+            const select = document.getElementById("user_select");
+            for (const option of select.options) {
+                option.style.display = option.text.toLowerCase().includes(input) ? "block" : "none";
+            }
+        }
+
+        toggleRoleSelect();
+    </script>
+</body>
+</html>

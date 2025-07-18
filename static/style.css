@@ -1,0 +1,20 @@
+body {
+    background-color: #2c2f33;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    padding: 40px;
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+    background-color: #23272a;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px black;
+}
+
+a {
+    color: #00ffff;
+    text-decoration: none;
+}
