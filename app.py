@@ -44,8 +44,6 @@ def login():
             session["user_id"] = discord_id
             return redirect("/dashboard")
         return render_template("login.html", error="❌ Невірний Discord ID або PIN-код.")
-
-
     return render_template("login.html")
 
 @app.route("/dashboard", methods=["GET", "POST"])
@@ -78,22 +76,21 @@ def dashboard():
         role = discord.utils.get(guild.roles, id=int(role_id_raw)) if role_id_raw.isdigit() else None
 
         if action == "kick":
-            loop.create_task(member.kick(reason=reason))
-            loop.create_task(send_log("❌ Виганяється", member, None, reason, author))
+            loop.run_until_complete(member.kick(reason=reason))
+            loop.run_until_complete(send_log("❌ Виганяється", member, None, reason, author))
             return "✅ Користувача вигнано."
 
         elif action in ["promote", "demote"]:
-            loop.create_task(handle_action("📈 Підвищення" if action == "promote" else "📉 Пониження", member, role, reason, author))
+            loop.run_until_complete(handle_action("📈 Підвищення" if action == "promote" else "📉 Пониження", member, role, reason, author))
             return "✅ Дію виконано."
 
         elif action == "accepted":
-            loop.create_task(send_log("✅ Прийнято до фракції", member, None, reason, author))
+            loop.run_until_complete(send_log("✅ Прийнято до фракції", member, None, reason, author))
             return "✅ Прийнято."
 
         return "❌ Невідома дія."
 
     return render_template("dashboard.html", members=members, roles=roles)
-
 
 async def handle_action(title, member, role, reason, author):
     old_roles = [r for r in member.roles if r.name in RANK_ROLE_NAMES and r != role]
@@ -119,10 +116,10 @@ async def send_log(title, member, role, reason, author):
 def logout():
     session.pop("user_id", None)
     return redirect("/")
+
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
