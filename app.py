@@ -133,5 +133,5 @@ def run_flask():
     app.run(port=5000)
 
 if __name__ == "__main__":
-    threading.Thread(target=run_flask).start()
     bot.run(TOKEN)
+
