@@ -37,6 +37,7 @@ async def on_ready():
 
 @app.route("/", methods=["GET", "POST"])
 def login():
+    error = None
     if request.method == "POST":
         discord_id = request.form.get("discord_id", "").strip()
         pin = request.form.get("pin", "").strip()
@@ -44,9 +45,11 @@ def login():
         if discord_id in ALLOWED_USERS and pin == os.getenv("ACCESS_PIN"):
             session["user_id"] = discord_id
             return redirect("/dashboard")
-        return "❌ Доступ заборонено. Невірний ID або PIN."
+        else:
+            error = "❌ Невірний ID або PIN-код."
 
-    return render_template("login.html")
+    return render_template("login.html", error=error)
+
 
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
