@@ -43,7 +43,8 @@ def login():
         if discord_id in ALLOWED_USERS and pin == PIN_CODE:
             session["user_id"] = discord_id
             return redirect("/dashboard")
-        return render_template("login.html", error="Невірний ID або PIN.")
+        return render_template("login.html", error="❌ Невірний Discord ID або PIN-код.")
+
 
     return render_template("login.html")
 
