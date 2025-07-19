@@ -127,9 +127,10 @@ async def send_log(title, member, role, reason, author):
 def logout():
     session.pop("user_id", None)
     return redirect("/")
-
 def run_flask():
-    app.run(port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
