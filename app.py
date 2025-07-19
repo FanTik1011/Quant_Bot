@@ -59,31 +59,23 @@ def dashboard():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     if not guild:
-        return "❌ Бот не бачить сервер."
+        return "❌ Сервер не знайдено."
+
+    members = [(m.display_name, m.id) for m in guild.members if not m.bot]
+    roles = [(r.name, r.id) for r in guild.roles if not r.managed and r.name != "@everyone"]
 
     if request.method == "POST":
         action = request.form.get("action")
-        user_id_raw = request.form.get("user_id", "").strip()
+        display_name = request.form.get("user_display", "").strip().lower()
         reason = request.form.get("reason", "Без причини")
         author = f"Discord ID: {session['user_id']}"
-
-        if not user_id_raw.isdigit():
-            return "❌ Некоректний ID користувача."
-        user_id = int(user_id_raw)
-
         role_id_raw = request.form.get("role_id", "").strip()
-        if action in ["promote", "demote"]:
-            if not role_id_raw.isdigit():
-                return "❌ Некоректний ID ролі."
-            role_id = int(role_id_raw)
-        else:
-            role_id = None
 
-        member = guild.get_member(user_id)
-        role = guild.get_role(role_id) if role_id else None
-
+        member = next((m for m in guild.members if m.display_name.lower() == display_name), None)
         if not member:
-            return "❌ Користувач не знайдений."
+            return "❌ Користувача не знайдено по ніку."
+
+        role = discord.utils.get(guild.roles, id=int(role_id_raw)) if role_id_raw.isdigit() else None
 
         if action == "kick":
             loop.create_task(member.kick(reason=reason))
@@ -100,9 +92,8 @@ def dashboard():
 
         return "❌ Невідома дія."
 
-    members = [(m.name, m.id) for m in guild.members if not m.bot]
-    roles = [(r.name, r.id) for r in guild.roles if not r.managed and r.name != "@everyone"]
     return render_template("dashboard.html", members=members, roles=roles)
+
 
 async def handle_action(title, member, role, reason, author):
     old_roles = [r for r in member.roles if r.name in RANK_ROLE_NAMES and r != role]

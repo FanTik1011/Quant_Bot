@@ -21,14 +21,12 @@
             <div class="mb-3">
                 <label for="user" class="form-label">Користувач (пошук по ніку)</label>
                 <input class="form-control" list="membersList" id="user" name="user_display"
-                       placeholder="Введіть нік..." oninput="updateUserID(this.value)" required>
+                       placeholder="Введіть нік..." required>
                 <datalist id="membersList">
                     {% for name, uid in members %}
-                        <option value="{{ name }}" data-id="{{ uid }}"></option>
+                        <option value="{{ name }}"></option>
                     {% endfor %}
                 </datalist>
-                <input type="hidden" name="user_id" id="user_id">
-                <small id="preview_id" class="text-muted"></small>
             </div>
 
             <div class="mb-3">
@@ -65,19 +63,6 @@
 </div>
 
 <script>
-    let members = JSON.parse('{{ members | tojson | safe }}');
-
-    function updateUserID(name) {
-        const match = members.find(m => m[0].toLowerCase() === name.toLowerCase());
-        if (match) {
-            document.getElementById("user_id").value = match[1];
-            document.getElementById("preview_id").textContent = "ID: " + match[1];
-        } else {
-            document.getElementById("user_id").value = "";
-            document.getElementById("preview_id").textContent = "";
-        }
-    }
-
     function toggleRoleDropdown() {
         const action = document.getElementById("action").value;
         const roleSection = document.getElementById("role-section");
@@ -87,7 +72,6 @@
             roleSection.style.display = "none";
         }
     }
-
     window.onload = toggleRoleDropdown;
 </script>
 </body>
