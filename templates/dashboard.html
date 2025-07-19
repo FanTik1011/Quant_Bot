@@ -2,47 +2,89 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Кадровий аудит</title>
+    <title>Кадровий аудит | National Guard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { margin-top: 50px; border-radius: 1rem; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container py-5">
-    <h2 class="mb-4">📋 Панель кадрового аудиту</h2>
-    <form method="post">
-        <div class="mb-3">
-            <label class="form-label">Користувач</label>
-            <select name="user_id" class="form-select">
-                {% for name, uid in members %}
-                <option value="{{ uid }}">{{ name }} ({{ uid }})</option>
-                {% endfor %}
-            </select>
+<body>
+<div class="container">
+    <div class="card p-4">
+        <h2 class="mb-4 text-center">Кадровий аудит</h2>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="user" class="form-label">Користувач (пошук по ніку)</label>
+                <input class="form-control" list="membersList" id="user" name="user_display"
+                       placeholder="Введіть нік..." oninput="updateUserID(this.value)" required>
+                <datalist id="membersList">
+                    {% for name, uid in members %}
+                        <option value="{{ name }}" data-id="{{ uid }}"></option>
+                    {% endfor %}
+                </datalist>
+                <input type="hidden" name="user_id" id="user_id">
+                <small id="preview_id" class="text-muted"></small>
+            </div>
+
+            <div class="mb-3">
+                <label for="action" class="form-label">Дія</label>
+                <select class="form-select" id="action" name="action" onchange="toggleRoleDropdown()" required>
+                    <option value="promote">📈 Підвищити</option>
+                    <option value="demote">📉 Понизити</option>
+                    <option value="accepted">✅ Прийнято</option>
+                    <option value="kick">❌ Вигнати</option>
+                </select>
+            </div>
+
+            <div class="mb-3" id="role-section">
+                <label for="role_id" class="form-label">Нова роль</label>
+                <select class="form-select" name="role_id">
+                    {% for name, rid in roles %}
+                        <option value="{{ rid }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="reason" class="form-label">Причина</label>
+                <input type="text" class="form-control" name="reason" placeholder="Наприклад: Здав іспит" required>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">✅ Підтвердити</button>
+        </form>
+
+        <div class="text-end mt-3">
+            <a href="/logout" class="btn btn-outline-danger btn-sm">Вийти</a>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Роль (для підвищення/пониження)</label>
-            <select name="role_id" class="form-select">
-                <option value="">-- Не вибирати --</option>
-                {% for rname, rid in roles %}
-                <option value="{{ rid }}">{{ rname }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Дія</label>
-            <select name="action" class="form-select">
-                <option value="promote">Підвищити</option>
-                <option value="demote">Понизити</option>
-                <option value="kick">Вигнати</option>
-                <option value="accepted">Прийнято</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Причина</label>
-            <input type="text" name="reason" class="form-control">
-        </div>
-        <button type="submit" class="btn btn-primary">Виконати</button>
-    </form>
-    <br>
-    <a href="/logout" class="btn btn-danger">Вийти</a>
+    </div>
 </div>
+
+<script>
+    let members = JSON.parse('{{ members | tojson | safe }}');
+
+    function updateUserID(name) {
+        const match = members.find(m => m[0].toLowerCase() === name.toLowerCase());
+        if (match) {
+            document.getElementById("user_id").value = match[1];
+            document.getElementById("preview_id").textContent = "ID: " + match[1];
+        } else {
+            document.getElementById("user_id").value = "";
+            document.getElementById("preview_id").textContent = "";
+        }
+    }
+
+    function toggleRoleDropdown() {
+        const action = document.getElementById("action").value;
+        const roleSection = document.getElementById("role-section");
+        if (action === "promote" || action === "demote") {
+            roleSection.style.display = "block";
+        } else {
+            roleSection.style.display = "none";
+        }
+    }
+
+    window.onload = toggleRoleDropdown;
+</script>
 </body>
 </html>
