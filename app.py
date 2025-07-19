@@ -1,3 +1,4 @@
+
 import os
 import threading
 import asyncio
@@ -28,8 +29,6 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 bot_ready = asyncio.Event()
 
-authenticated_users = {}  # session_id: discord_user_id
-
 @bot.event
 async def on_ready():
     print(f"✅ Бот запущено як {bot.user}")
@@ -37,7 +36,6 @@ async def on_ready():
 
 @app.route("/", methods=["GET", "POST"])
 def login():
-    error = None
     if request.method == "POST":
         discord_id = request.form.get("discord_id", "").strip()
         pin = request.form.get("pin", "").strip()
@@ -45,11 +43,9 @@ def login():
         if discord_id in ALLOWED_USERS and pin == os.getenv("ACCESS_PIN"):
             session["user_id"] = discord_id
             return redirect("/dashboard")
-        else:
-            error = "❌ Невірний ID або PIN-код."
+        return "❌ Доступ заборонено. Невірний ID або PIN."
 
-    return render_template("login.html", error=error)
-
+    return render_template("login.html")
 
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
@@ -136,5 +132,5 @@ def run_flask():
     app.run(port=5000)
 
 if __name__ == "__main__":
+    threading.Thread(target=run_flask).start()
     bot.run(TOKEN)
-
