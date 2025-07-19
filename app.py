@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, session
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from concurrent.futures import TimeoutError as AsyncTimeoutError
 
 load_dotenv()
 
@@ -28,9 +29,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 bot_ready = asyncio.Event()
+discord_loop = None
 
 @bot.event
 async def on_ready():
+    global discord_loop
+    discord_loop = asyncio.get_event_loop()
     print(f"✅ Бот запущено як {bot.user}")
     bot_ready.set()
 
@@ -44,6 +48,7 @@ def login():
             session["user_id"] = discord_id
             return redirect("/dashboard")
         return render_template("login.html", error="❌ Невірний Discord ID або PIN-код.")
+
     return render_template("login.html")
 
 @app.route("/dashboard", methods=["GET", "POST"])
@@ -76,16 +81,16 @@ def dashboard():
         role = discord.utils.get(guild.roles, id=int(role_id_raw)) if role_id_raw.isdigit() else None
 
         if action == "kick":
-            loop.run_until_complete(member.kick(reason=reason))
-            loop.run_until_complete(send_log("❌ Виганяється", member, None, reason, author))
+            asyncio.run_coroutine_threadsafe(member.kick(reason=reason), discord_loop)
+            asyncio.run_coroutine_threadsafe(send_log("❌ Виганяється", member, None, reason, author), discord_loop)
             return "✅ Користувача вигнано."
 
         elif action in ["promote", "demote"]:
-            loop.run_until_complete(handle_action("📈 Підвищення" if action == "promote" else "📉 Пониження", member, role, reason, author))
+            asyncio.run_coroutine_threadsafe(handle_action("📈 Підвищення" if action == "promote" else "📉 Пониження", member, role, reason, author), discord_loop)
             return "✅ Дію виконано."
 
         elif action == "accepted":
-            loop.run_until_complete(send_log("✅ Прийнято до фракції", member, None, reason, author))
+            asyncio.run_coroutine_threadsafe(send_log("✅ Прийнято до фракції", member, None, reason, author), discord_loop)
             return "✅ Прийнято."
 
         return "❌ Невідома дія."
