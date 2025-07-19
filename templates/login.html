@@ -2,45 +2,51 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>🔐 Вхід | Кадровий аудит</title>
+    <title>Вхід через Discord</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f0f2f5;
-            color: #333;
+            background: url("/static/bg.jpg") no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        .login-card {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 2rem;
-            background-color: #ffffff;
+
+        .card {
+            padding: 2rem 3rem;
             border-radius: 1rem;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        h2 {
-            font-weight: bold;
+            background-color: rgba(30, 30, 47, 0.85);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
             text-align: center;
+        }
+
+        .btn-discord {
+            background-color: #5865F2;
+            color: white;
+            font-size: 1.2rem;
+            padding: 0.8rem 2rem;
+            transition: 0.3s;
+            border: none;
+        }
+
+        .btn-discord:hover {
+            background-color: #4752C4;
+            transform: scale(1.05);
+        }
+
+        h2 {
             margin-bottom: 1.5rem;
+            color: white;
         }
     </style>
 </head>
 <body>
-<div class="login-card">
-    <h2>Вхід у кадровий аудит</h2>
-    <form method="post">
-        <div class="mb-3">
-            <label class="form-label">Discord ID</label>
-            <input type="text" name="discord_id" class="form-control" placeholder="Наприклад: 34057484..." required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">PIN-код</label>
-            <input type="password" name="pin" class="form-control" placeholder="Ваш PIN" required>
-        </div>
-        {% if error %}
-            <div class="alert alert-danger mt-2">{{ error }}</div>
-        {% endif %}
-        <button type="submit" class="btn btn-success w-100">✅ Увійти</button>
-    </form>
-</div>
+    <div class="card">
+        <h2>🔐 Вхід у Кадровий Аудит</h2>
+        <a href="/login" class="btn btn-discord">🔗 Увійти через Discord</a>
+    </div>
 </body>
 </html>

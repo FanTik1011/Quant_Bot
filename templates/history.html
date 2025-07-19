@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Історія дій | National Guard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: url("/static/bg.jpg") no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+        }
+        .table-container {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-top: 2rem;
+        }
+        th, td {
+            color: black !important;
+            vertical-align: middle !important;
+        }
+        .table-dark th {
+            background-color: #343a40;
+        }
+    </style>
+</head>
+<body>
+<div class="container table-container">
+    <h2 class="mb-4">📋 Історія дій Кадрового Аудиту</h2>
+    <a href="/dashboard" class="btn btn-outline-light mb-3">← Назад до Dashboard</a>
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+        <tr>
+            <th>Виконавець</th>
+            <th>Кого</th>
+            <th>Дія</th>
+            <th>Роль</th>
+            <th>Причина</th>
+            <th>Дата</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in actions %}
+            <tr>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+                <td>{{ row[6] }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
