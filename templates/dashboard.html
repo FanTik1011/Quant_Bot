@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Кадровий аудит</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-5">
+    <h2 class="mb-4">📋 Панель кадрового аудиту</h2>
+    <form method="post">
+        <div class="mb-3">
+            <label class="form-label">Користувач</label>
+            <select name="user_id" class="form-select">
+                {% for name, uid in members %}
+                <option value="{{ uid }}">{{ name }} ({{ uid }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Роль (для підвищення/пониження)</label>
+            <select name="role_id" class="form-select">
+                <option value="">-- Не вибирати --</option>
+                {% for rname, rid in roles %}
+                <option value="{{ rid }}">{{ rname }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Дія</label>
+            <select name="action" class="form-select">
+                <option value="promote">Підвищити</option>
+                <option value="demote">Понизити</option>
+                <option value="kick">Вигнати</option>
+                <option value="accepted">Прийнято</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Причина</label>
+            <input type="text" name="reason" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Виконати</button>
+    </form>
+    <br>
+    <a href="/logout" class="btn btn-danger">Вийти</a>
+</div>
+</body>
+</html>

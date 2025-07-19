@@ -1,5 +1,3 @@
-Flask
-requests
-python-dotenv
-gunicorn
+flask
 discord.py
+python-dotenv
