@@ -1,8 +1,7 @@
-
 import os
 import threading
 import asyncio
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -14,6 +13,7 @@ GUILD_ID = int(os.getenv("GUILD_ID"))
 LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID"))
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALLOWED_USERS = os.getenv("ALLOWED_USERS", "").split(",")
+PIN_CODE = os.getenv("ACCESS_PIN")
 
 RANK_ROLE_NAMES = [
     "Guest", "Курсант", "Сержант", "Лейтенант",
@@ -40,10 +40,10 @@ def login():
         discord_id = request.form.get("discord_id", "").strip()
         pin = request.form.get("pin", "").strip()
 
-        if discord_id in ALLOWED_USERS and pin == os.getenv("ACCESS_PIN"):
+        if discord_id in ALLOWED_USERS and pin == PIN_CODE:
             session["user_id"] = discord_id
             return redirect("/dashboard")
-        return "❌ Доступ заборонено. Невірний ID або PIN."
+        return render_template("login.html", error="Невірний ID або PIN.")
 
     return render_template("login.html")
 
