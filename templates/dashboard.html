@@ -70,45 +70,59 @@
 <body>
 <div class="container form-container">
     <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
-    <form method="POST">
-        <div class="mb-3">
-            <label for="user_id" class="form-label">👤 Кого стосується</label>
-            <select class="form-select" id="user_id" name="user_id" required>
-                {% for name, uid in members %}
-                    <option value="{{ uid }}">{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+   <form method="POST">
+    <div class="mb-3">
+        <label for="first_name" class="form-label">👤 Ім’я</label>
+        <input type="text" class="form-control" id="first_name" name="first_name" required>
+    </div>
+    <div class="mb-3">
+        <label for="last_name" class="form-label">👤 Прізвище</label>
+        <input type="text" class="form-control" id="last_name" name="last_name" required>
+    </div>
+    <div class="mb-3">
+        <label for="static_id" class="form-label">🆔 Статичний ID</label>
+        <input type="text" class="form-control" id="static_id" name="static_id" required>
+    </div>
 
-        <div class="mb-3">
-            <label for="action" class="form-label">📌 Дія</label>
-            <select class="form-select" id="action" name="action" required>
-                <option value="Прийнято">Прийнято</option>
-                <option value="Підвищено">Підвищено</option>
-                <option value="Понижено">Понижено</option>
-                <option value="Вигнано">Вигнано</option>
-            </select>
-        </div>
+    <div class="mb-3">
+        <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
+        <select class="form-select" id="user_id" name="user_id" required>
+            {% for name, uid in members %}
+                <option value="{{ uid }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-        <div class="mb-3">
-            <label for="role_id" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
-            <select class="form-select" id="role_id" name="role_id">
-                <option value="">Без зміни</option>
-                {% for name, rid in roles %}
-                    <option value="{{ rid }}">{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <div class="mb-3">
+        <label for="action" class="form-label">📌 Дія</label>
+        <select class="form-select" id="action" name="action" required>
+            <option value="Прийнято">Прийнято</option>
+            <option value="Підвищено">Підвищено</option>
+            <option value="Понижено">Понижено</option>
+            <option value="Вигнано">Вигнано</option>
+        </select>
+    </div>
 
-        <div class="mb-3">
-            <label for="reason" class="form-label">📝 Причина (посилання або коментар)</label>
-            <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ 1 від 20.07.2025'"></textarea>
-        </div>
+    <div class="mb-3">
+        <label for="role_id" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
+        <select class="form-select" id="role_id" name="role_id">
+            <option value="">Без зміни</option>
+            {% for name, rid in roles %}
+                <option value="{{ rid }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-        <button type="submit" class="btn btn-success">✅ Застосувати дію</button>
-        <a href="/history" class="btn btn-outline-light ms-3">📋 Переглянути історію</a>
-        <a href="/logout" class="btn btn-outline-danger float-end">🚪 Вийти</a>
-    </form>
+    <div class="mb-3">
+        <label for="reason" class="form-label">📝 Причина (посилання або коментар)</label>
+        <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ 1 від 20.07.2025'"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">✅ Застосувати дію</button>
+    <a href="/history" class="btn btn-outline-light ms-3">📋 Переглянути історію</a>
+    <a href="/logout" class="btn btn-outline-danger float-end">🚪 Вийти</a>
+</form>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
