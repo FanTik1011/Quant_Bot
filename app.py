@@ -124,27 +124,17 @@ def dashboard():
                 awaitable.append(member.add_roles(role))
 
         # Формат логів
-        # Формат логів
-    embed = discord.Embed(
-        title="📋 Новий запис у Кадровому Аудиті",
-        description=f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}",
-        color=discord.Color.dark_blue()
-    )
-    embed.set_author(name="National Guard | Кадровий аудит", icon_url="https://i.imgur.com/5M0bK2s.png")
-    embed.add_field(name="👤 Хто виконав", value=f"<@{session['user']['id']}>", inline=True)
-    embed.add_field(name="🎯 Кого стосується", value=member.mention, inline=True)
-    embed.add_field(name="📌 Дія", value=f"**{action}**", inline=True)
+        embed = discord.Embed(title="📋 Кадровий аудит", color=discord.Color.green())
+        embed.add_field(name="👤 Хто", value=f"<@{session['user']['id']}>", inline=False)
+        embed.add_field(name="🎯 Кого", value=member.mention, inline=False)
+        embed.add_field(name="📌 Дія", value=f"📈 {action}", inline=False)
+        if role:
+            embed.add_field(name="🎖️ Нова роль", value=role.name, inline=False)
+        embed.add_field(name="📝 Причина", value=reason, inline=False)
 
-    if role:
-        embed.add_field(name="🎖️ Нова роль", value=role.name, inline=True)
-
-    embed.add_field(name="📝 Причина", value=reason, inline=False)
-    embed.set_footer(text="Кадровий аудит • National Guard", icon_url="https://i.imgur.com/5M0bK2s.png")
-
-    log_channel = bot.get_channel(LOG_CHANNEL_ID)
-    if log_channel:
-        bot.loop.create_task(log_channel.send(embed=embed))
-
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            bot.loop.create_task(log_channel.send(embed=embed))
 
         # БД запис
         with sqlite3.connect("audit.db") as conn:
