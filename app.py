@@ -10,8 +10,6 @@ from discord.ext import commands
 
 load_dotenv()
 app = Flask(__name__, static_folder="static")
-
-app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -26,7 +24,7 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# БД
+# Ініціалізація БД
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
@@ -106,6 +104,7 @@ def dashboard():
 
     if request.method == "POST":
         executor = session["user"]["username"]
+        executor_id = session["user"]["id"]
         target_id = request.form.get("user_id")
         action = request.form.get("action")
         role_id = request.form.get("role_id")
@@ -123,14 +122,21 @@ def dashboard():
             if role:
                 awaitable.append(member.add_roles(role))
 
-        # Формат логів
-        embed = discord.Embed(title="📋 Кадровий аудит", color=discord.Color.green())
-        embed.add_field(name="👤 Хто", value=f"<@{session['user']['id']}>", inline=False)
-        embed.add_field(name="🎯 Кого", value=member.mention, inline=False)
-        embed.add_field(name="📌 Дія", value=f"📈 {action}", inline=False)
-        if role:
-            embed.add_field(name="🎖️ Нова роль", value=role.name, inline=False)
-        embed.add_field(name="📝 Причина", value=reason, inline=False)
+        # Краще embed повідомлення
+        embed = discord.Embed(
+            title="📋 Кадровий аудит | National Guard",
+            description=(
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 **Кого:** {member.mention}\n"
+        f"📌 **Дія:** `{action}`\n"
+        f"📝 **Підстава:** {reason}\n"
+        f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
+        f"✍️ **Хто заповнив:** <@{executor_id}>\n"
+        f"━━━━━━━━━━━━━━━━━━━"
+            ),
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Форма кадрового аудиту • National Guard")
 
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:

@@ -11,7 +11,7 @@
             color: white;
         }
         .table-container {
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.75);
             padding: 2rem;
             border-radius: 1rem;
             margin-top: 2rem;
@@ -28,7 +28,12 @@
 <body>
 <div class="container table-container">
     <h2 class="mb-4">📋 Історія дій Кадрового Аудиту</h2>
-    <a href="/dashboard" class="btn btn-outline-light mb-3">← Назад до Dashboard</a>
+
+    <div class="mb-3 d-flex justify-content-between">
+        <a href="/dashboard" class="btn btn-outline-light">← Назад до Dashboard</a>
+        <a href="/download_csv" class="btn btn-success">📥 Завантажити CSV</a>
+    </div>
+
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
         <tr>
