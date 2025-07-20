@@ -20,20 +20,29 @@
     label {
         color: #ccc;
     }
+
+    /* Робимо текст чорним у стандартних полях */
     select, input, textarea {
         color: black !important;
+        background-color: white !important;
     }
 
-    /* 🟢 Чорний текст у Select2 */
+    /* Select2 - чорний текст і білий фон */
     .select2-container--default .select2-selection--single {
-        background-color: white;
-        color: black;
+        background-color: white !important;
+        color: black !important;
+        border: 1px solid #ced4da;
     }
     .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: black;
+        color: black !important;
     }
     .select2-container--default .select2-results__option {
-        color: black;
+        color: black !important;
+        background-color: white !important;
+    }
+    .select2-container--default .select2-results__option--highlighted {
+        background-color: #cce5ff !important;
+        color: black !important;
     }
 </style>
 
