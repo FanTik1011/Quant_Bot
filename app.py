@@ -100,7 +100,27 @@ def dashboard():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
-    roles = [(r.name, r.id) for r in guild.roles if not r.managed and r.name != "@everyone"]
+    members = [(m.display_name, m.id) for m in guild.members if not m.bot]
+    RANK_ORDER = {
+        "Новобранець": 0,
+        "Рекрут": 1,
+        "Солдат": 2,
+        "Молодший Сержант": 4,
+        "Сержант": 5,
+        "Старший Сержант": 6,
+        "Штаб-Сержант": 7,
+        "Молодший Лейтенант": 8,
+        "Лейтенант": 9,
+        "Старший Лейтенант": 10,
+        "Капітан": 11,
+        "Майор": 12,
+        "Підполковник": 13,
+        "Полковник": 14
+    }
+    roles = sorted(
+        [(r.name, r.id) for r in guild.roles if r.name in RANK_ORDER],
+        key=lambda x: RANK_ORDER[x[0]]
+    )
 
     if request.method == "POST":
         executor = session["user"]["username"]
