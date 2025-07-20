@@ -111,7 +111,25 @@ def dashboard():
         reason = request.form.get("reason", "Без причини")
 
         member = discord.utils.get(guild.members, id=int(target_id))
-        role = discord.utils.get(guild.roles, id=int(role_id)) if role_id else None
+        DISPLAYED_ROLES = [
+            "Новобранець",
+            "Рекрут",
+            "Солдат",
+            "Молодший Сержант",
+            "Сержант",
+            "Старший Сержант",
+            "Штаб-Сержант",
+            "Молодший Лейтенант",
+            "Лейтенант",
+            "Старший Лейтенант",
+            "Капітан",
+            "Майор",
+            "Підполковник",
+            "Полковник"
+        ]
+
+        roles = [(r.name, r.id) for r in guild.roles if r.name in DISPLAYED_ROLES]
+
 
         # Зміна ролі
         if action in ["Прийнято", "Підвищено", "Понижено"]:
