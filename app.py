@@ -123,11 +123,15 @@ def dashboard():
                 awaitable.append(member.add_roles(role))
 
         # Краще embed повідомлення
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
+        static_id = request.form.get("static_id")
+
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 **Кого:** {member.mention}\n"
+        f"👤 **Кого:** {member.mention} | `{first_name} {last_name} #{static_id}`\n"
         f"📌 **Дія:** `{action}`\n"
         f"📝 **Підстава:** {reason}\n"
         f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
