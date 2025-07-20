@@ -71,19 +71,20 @@
 <div class="container form-container">
     <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
    <form method="POST">
-    <div class="mb-3">
-    <label for="full_name_id" class="form-label">👤 Ім’я Прізвище | Статичний ID</label>
-    <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" required>
+  <div class="mb-3">
+    <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
+    <select class="form-select" id="user_id" name="user_id" required onchange="updateFullNameId()">
+        {% for name, uid in members %}
+            <option value="{{ uid }}" data-fullname="{{ name }}">{{ name }}</option>
+        {% endfor %}
+    </select>
 </div>
 
-    <div class="mb-3">
-        <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
-        <select class="form-select" id="user_id" name="user_id" required>
-            {% for name, uid in members %}
-                <option value="{{ uid }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+<div class="mb-3">
+    <label for="full_name_id" class="form-label">🆔 Ім’я Прізвище | Статичний ID</label>
+    <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" readonly required>
+</div>
+
 
     <div class="mb-3">
         <label for="action" class="form-label">📌 Дія</label>
@@ -128,5 +129,17 @@
         });
     });
 </script>
+<script>
+function updateFullNameId() {
+    const select = document.getElementById("user_id");
+    const selectedOption = select.options[select.selectedIndex];
+    const name = selectedOption.getAttribute("data-fullname");
+    
+    // Можна додати мапу UID -> ID, якщо статичний ID не введений вручну
+    const staticId = selectedOption.value.slice(-5); // приклад: останні 5 цифр UID
+    document.getElementById("full_name_id").value = `${name} | ${staticId}`;
+}
+</script>
+
 </body>
 </html>
