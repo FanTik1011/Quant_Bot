@@ -97,15 +97,11 @@
         </select>
     </div>
 
-    <div class="mb-3">
-    <label for="role_id" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
-    <select class="form-select" id="role_id" name="role_id">
-        <option value="">Без зміни</option>
-        {% for name, rid in roles %}
-            <option value="{{ rid }}">{{ name }}</option>
-        {% endfor %}
-    </select>
+<div class="mb-3">
+    <label for="role_name" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
+    <input type="text" class="form-control" id="role_name" name="role_name" placeholder="Сержант, Майор, ..." />
 </div>
+
 
 
     <div class="mb-3">
