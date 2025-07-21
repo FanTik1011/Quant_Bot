@@ -3,11 +3,10 @@ import threading
 import sqlite3
 import requests
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, session, Response, send_file
+from flask import Flask, render_template, request, redirect, session, send_file
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-
 
 load_dotenv()
 app = Flask(__name__, static_folder="static")
@@ -25,7 +24,13 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Ініціалізація БД
+# Ранги, які відображаються у списку нових ролей
+ALLOWED_RANKS = [
+    "Новобранець", "Рекрут", "Солдат", "Молодший Сержант", "Сержант", "Старший Сержант",
+    "Штаб-Сержант", "Молодший Лейтенант", "Лейтенант", "Старший Лейтенант",
+    "Капітан", "Майор", "Підполковник", "Полковник"
+]
+
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
@@ -101,12 +106,7 @@ def dashboard():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
-    allowed_ranks = [
-    "Новобранець", "Рекрут", "Солдат", "Молодший Сержант", "Сержант", "Старший Сержант",
-    "Штаб-Сержант", "Молодший Лейтенант", "Лейтенант", "Старший Лейтенант", "Капітан",
-    "Майор", "Підполковник", "Полковник"
-]
-    roles = [(r.name, r.id) for r in guild.roles if r.name in allowed_ranks]
+    roles = [(r.name, r.id) for r in guild.roles if r.name in ALLOWED_RANKS]
 
     if request.method == "POST":
         executor = session["user"]["username"]
@@ -115,33 +115,29 @@ def dashboard():
         action = request.form.get("action")
         role_id = request.form.get("role_id")
         reason = request.form.get("reason", "Без причини")
+        full_name_id = request.form.get("full_name_id", "Невідомо")
 
         member = discord.utils.get(guild.members, id=int(target_id))
         role = discord.utils.get(guild.roles, id=int(role_id)) if role_id else None
 
-        # Зміна ролі
         if action in ["Прийнято", "Підвищено", "Понижено"]:
-            old_roles = [r for r in member.roles if r.name in ALLOWED_ROLES]
+            old_roles = [r for r in member.roles if r.name in ALLOWED_RANKS]
             awaitable = []
             if old_roles:
                 awaitable.append(member.remove_roles(*old_roles))
             if role:
                 awaitable.append(member.add_roles(role))
 
-        # Краще embed повідомлення
-        full_name_id = request.form.get("full_name_id", "Невідомо")
-
-
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 **Кого:** {member.mention} | `{full_name_id}`\n"
-        f"📌 **Дія:** `{action}`\n"
-        f"📝 **Підстава:** {reason}\n"
-        f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
-        f"✍️ **Хто заповнив:** <@{executor_id}>\n"
-        f"━━━━━━━━━━━━━━━━━━━"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 **Кого:** {member.mention} | `{full_name_id}`\n"
+                f"📌 **Дія:** `{action}`\n"
+                f"📝 **Підстава:** {reason}\n"
+                f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
+                f"✍️ **Хто заповнив:** <@{executor_id}>\n"
+                f"━━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.blue()
         )
@@ -151,7 +147,6 @@ def dashboard():
         if log_channel:
             bot.loop.create_task(log_channel.send(embed=embed))
 
-        # БД запис
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("INSERT INTO actions (executor, target, action, role, reason, date) VALUES (?, ?, ?, ?, ?, ?)",
@@ -170,15 +165,14 @@ def history():
         actions = c.fetchall()
     return render_template("history.html", actions=actions)
 
+@app.route("/download_db")
+def download_db():
+    return send_file("audit.db", as_attachment=True)
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
-@app.route("/download_db")
-def download_db():
-    if os.path.exists("audit.db"):
-        return send_file("audit.db", as_attachment=True)
-    return "❌ Файл бази даних не знайдено.", 404
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
