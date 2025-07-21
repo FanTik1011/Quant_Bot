@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, redirect, session
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
+from flask import Response
 
 load_dotenv()
 app = Flask(__name__, static_folder="static")
@@ -172,6 +173,25 @@ def logout():
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+@app.route("/download_csv")
+def download_csv():
+    with sqlite3.connect("audit.db") as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM actions ORDER BY date DESC")
+        rows = c.fetchall()
+        headers = [desc[0] for desc in c.description]
+
+    def generate():
+        data = [headers] + rows
+        for row in data:
+            yield ','.join(str(item) for item in row) + '\n'
+
+    return Response(
+        generate(),
+        mimetype='text/csv',
+        headers={"Content-Disposition": "attachment; filename=кадровий_аудит.csv"}
+    )
+
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
