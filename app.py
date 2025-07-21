@@ -105,12 +105,6 @@ def dashboard():
         executor = session["user"]["username"]
         executor_id = session["user"]["id"]
         target_id = request.form.get("user_id")
-
-    try:
-        member = discord.utils.get(guild.members, id=int(target_id))
-    except ValueError:
-        member = None
-
         action = request.form.get("action")
         new_role = request.form.get("role_name", "").strip()
         reason = request.form.get("reason", "Без причини")
@@ -122,7 +116,7 @@ def dashboard():
             title="📋 Кадровий аудит | National Guard",
             description=(
                 f"━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 **Кого:** {'<@'+target_id+'>' if member else full_name_id} | `{full_name_id}`\n"
+                f"👤 **Кого:** {member.mention} | {full_name_id}\n"
                 f"📌 **Дія:** {action}\n"
                 f"🎖️ **Роль:** {new_role if new_role else '-'}\n"
                 f"📝 **Підстава:** {reason}\n"
