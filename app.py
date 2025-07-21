@@ -148,7 +148,18 @@ def history():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM actions ORDER BY date DESC")
-        actions = c.fetchall()
+        rows = c.fetchall()
+
+        actions = []
+        for row in rows:
+            try:
+                formatted_date = datetime.strptime(row[6], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
+            except:
+                formatted_date = row[6]  # Якщо формат неочікуваний — залишаємо як є
+
+            # Додаємо новий кортеж із форматованою датою
+            actions.append((row[0], row[1], row[2], row[3], row[4], row[5], formatted_date))
+
     return render_template("history.html", actions=actions)
 
 @app.route("/download_db")
