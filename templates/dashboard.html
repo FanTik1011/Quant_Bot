@@ -73,12 +73,10 @@
     <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
    <form method="POST">
   <div class="mb-3">
-    <select class="form-select" id="user_id" name="user_id" required onchange="handleUserChange()">
-    <option disabled selected value="">👤 Кого стосується (нік у Discord)</option>
+<select class="form-select" id="user_id" name="user_id" required>
     {% for name, uid in members %}
         <option value="{{ uid }}">{{ name }}</option>
     {% endfor %}
-    <option value="manual">🔧 Користувач вийшов з сервера (ввести вручну)</option>
 </select>
 
 <input type="text" class="form-control mt-2 d-none" id="manual_user_id" placeholder="Введіть Discord ID вручну">
@@ -124,26 +122,23 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    function handleUserChange() {
-        const select = document.getElementById("user_id");
-        const manualInput = document.getElementById("manual_user_id");
-
-        if (select.value === "manual") {
-            manualInput.classList.remove("d-none");
-            manualInput.setAttribute("name", "user_id");
-            select.removeAttribute("name");
-        } else {
-            manualInput.classList.add("d-none");
-            manualInput.removeAttribute("name");
-            select.setAttribute("name", "user_id");
-        }
-    }
-
     $(document).ready(function() {
         $('#user_id').select2({
             theme: 'bootstrap4',
-            placeholder: "Оберіть користувача",
-            width: '100%'
+            placeholder: "Оберіть користувача або впишіть вручну",
+            width: '100%',
+            tags: true,  // ✅ дозволяє вводити нове значення
+            createTag: function (params) {
+                return {
+                    id: params.term,
+                    text: params.term,
+                    newOption: true
+                };
+            },
+            insertTag: function (data, tag) {
+                data.push(tag);
+            }
         });
     });
 </script>
+
