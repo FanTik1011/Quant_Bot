@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -68,16 +69,17 @@
 
 </head>
 <body>
-<div class="mb-3">
-    <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord або вручну)</label>
-    <input list="members" class="form-control" id="user_id" name="user_id" required placeholder="Введіть нік або виберіть">
-    <datalist id="members">
+<div class="container form-container">
+    <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
+   <form method="POST">
+  <div class="mb-3">
+    <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
+    <select class="form-select" id="user_id" name="user_id" required onchange="copyToFullNameId()">
         {% for name, uid in members %}
             <option value="{{ uid }}">{{ name }}</option>
         {% endfor %}
-    </datalist>
+    </select>
 </div>
-
 
 <div class="mb-3">
     <label for="full_name_id" class="form-label">🆔 Ім’я Прізвище | Статичний ID</label>
@@ -126,7 +128,3 @@
         });
     });
 </script>
-
-
-</body>
-</html>
