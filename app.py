@@ -120,7 +120,7 @@ def dashboard():
                 f"📌 **Дія:** `{action}`\n"
                 f"🎖️ **Роль:** `{new_role if new_role else '-'}`\n"
                 f"📝 **Підстава:** {reason}\n"
-                f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
+                f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y')}`\n"
                 f"✍️ **Хто заповнив:** <@{executor_id}>\n"
                 f"━━━━━━━━━━━━━━━━━━━"
             ),
