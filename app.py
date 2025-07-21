@@ -101,7 +101,12 @@ def dashboard():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
-    roles = [(r.name, r.id) for r in guild.roles if not r.managed and r.name != "@everyone"]
+    allowed_ranks = [
+    "Новобранець", "Рекрут", "Солдат", "Молодший Сержант", "Сержант", "Старший Сержант",
+    "Штаб-Сержант", "Молодший Лейтенант", "Лейтенант", "Старший Лейтенант", "Капітан",
+    "Майор", "Підполковник", "Полковник"
+]
+    roles = [(r.name, r.id) for r in guild.roles if r.name in allowed_ranks]
 
     if request.method == "POST":
         executor = session["user"]["username"]
