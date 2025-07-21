@@ -74,6 +74,15 @@ def callback():
         "Authorization": f"Bearer {access_token}"
     }).json()
 
+    user_id = user_info["id"]
+    allowed_user_ids = os.getenv("ALLOWED_USERS", "").split(",")
+
+    # Якщо user_id входить до списку ALLOWED_USERS — пускаємо
+    if user_id in allowed_user_ids:
+        session["user"] = user_info
+        return redirect("/dashboard")
+
+    # Інакше перевіряємо ролі на сервері
     guild_member = requests.get(
         f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
         headers={"Authorization": f"Bearer {access_token}"}
@@ -92,6 +101,7 @@ def callback():
             return redirect("/dashboard")
 
     return "❌ У вас немає доступу."
+
 
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
