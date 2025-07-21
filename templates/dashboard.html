@@ -73,12 +73,16 @@
     <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
    <form method="POST">
   <div class="mb-3">
-    <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
-    <select class="form-select" id="user_id" name="user_id" required onchange="copyToFullNameId()">
-        {% for name, uid in members %}
-            <option value="{{ uid }}">{{ name }}</option>
-        {% endfor %}
-    </select>
+    <select class="form-select" id="user_id" name="user_id" required onchange="handleUserChange()">
+    <option disabled selected value="">👤 Кого стосується (нік у Discord)</option>
+    {% for name, uid in members %}
+        <option value="{{ uid }}">{{ name }}</option>
+    {% endfor %}
+    <option value="manual">🔧 Користувач вийшов з сервера (ввести вручну)</option>
+</select>
+
+<input type="text" class="form-control mt-2 d-none" id="manual_user_id" placeholder="Введіть Discord ID вручну">
+
 </div>
 
 <div class="mb-3">
@@ -120,6 +124,21 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    function handleUserChange() {
+        const select = document.getElementById("user_id");
+        const manualInput = document.getElementById("manual_user_id");
+
+        if (select.value === "manual") {
+            manualInput.classList.remove("d-none");
+            manualInput.setAttribute("name", "user_id");
+            select.removeAttribute("name");
+        } else {
+            manualInput.classList.add("d-none");
+            manualInput.removeAttribute("name");
+            select.setAttribute("name", "user_id");
+        }
+    }
+
     $(document).ready(function() {
         $('#user_id').select2({
             theme: 'bootstrap4',
