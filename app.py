@@ -110,16 +110,13 @@ def dashboard():
         reason = request.form.get("reason", "Без причини")
         full_name_id = request.form.get("full_name_id", "Невідомо")
 
-        member = discord.utils.get(guild.members, id=int(target_id)) if target_id.isdigit() else None
-        member_mention = member.mention if member else full_name_id
-        member_display = member.display_name if member else full_name_id
-
+        member = discord.utils.get(guild.members, id=int(target_id))
 
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
                 f"━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 **Кого:** {member_mention} | `{full_name_id}`\n"
+                f"👤 **Кого:** {member.mention} | `{full_name_id}`\n"
                 f"📌 **Дія:** `{action}`\n"
                 f"🎖️ **Роль:** `{new_role if new_role else '-'}`\n"
                 f"📝 **Підстава:** {reason}\n"
@@ -138,9 +135,8 @@ def dashboard():
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("INSERT INTO actions (executor, target, action, role, reason, date) VALUES (?, ?, ?, ?, ?, ?)",
-          (executor, member_display, action, new_role if new_role else "-", reason,
-           datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
+                      (executor, member.display_name, action, new_role if new_role else "-", reason,
+                       datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             conn.commit()
 
         return redirect("/dashboard")
