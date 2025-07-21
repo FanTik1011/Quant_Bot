@@ -90,8 +90,24 @@ def callback():
         if role and role.name in ALLOWED_ROLES:
             session["user"] = user_info
             return redirect("/dashboard")
-
     return "❌ У вас немає доступу."
+full_name_id = request.form.get("full_name_id", "Невідомо")
+ALLOWED_ROLE_NAMES = [
+        "Новобранець",
+        "Рекрут",
+        "Солдат",
+        "Молодший Сержант",
+        "Сержант",
+        "Старший Сержант",
+        "Штаб-Сержант",
+        "Молодший Лейтенант",
+        "Лейтенант",
+        "Старший Лейтенант",
+        "Капітан",
+        "Майор",
+        "Підполковник",
+        "Полковник"
+    ]
 
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
@@ -100,7 +116,7 @@ def dashboard():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
-    roles = [(r.name, r.id) for r in guild.roles if not r.managed and r.name != "@everyone"]
+    roles = [(r.name, r.id) for r in guild.roles if r.name in ALLOWED_ROLE_NAMES]
 
     if request.method == "POST":
         executor = session["user"]["username"]
@@ -123,8 +139,7 @@ def dashboard():
                 awaitable.append(member.add_roles(role))
 
         # Краще embed повідомлення
-        full_name_id = request.form.get("full_name_id", "Невідомо")
-
+     
 
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
