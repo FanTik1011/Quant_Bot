@@ -7,110 +7,116 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet">
 
-    <style>
-        body {
-            background: url("/static/bg.jpg") no-repeat center center fixed;
-            background-size: cover;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        .form-container {
-            background-color: rgba(0, 0, 0, 0.75);
-            padding: 2rem;
-            border-radius: 1rem;
-            margin-top: 2rem;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-        }
-        label {
-            color: #ccc;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-        select, input, textarea {
-            color: black !important;
-            background-color: #fff !important;
-            border-radius: 0.375rem !important;
-            border: 1px solid #ced4da !important;
-            padding: 0.5rem 0.75rem !important;
-            box-shadow: none !important;
-        }
-        .select2-container--bootstrap4 .select2-selection--single {
-            height: 40px !important;
-            padding: 5px 10px;
-            background-color: #fff !important;
-            border: 1px solid #ced4da !important;
-            border-radius: 0.375rem !important;
-        }
-        .select2-container--bootstrap4 .select2-selection__rendered {
-            color: black !important;
-            line-height: 28px !important;
-        }
-        .select2-container--bootstrap4 .select2-results__option {
-            color: black !important;
-            background-color: white !important;
-        }
-        .select2-container--bootstrap4 .select2-results__option--highlighted {
-            background-color: #cce5ff !important;
-            color: black !important;
-        }
-        button, a.btn {
-            margin-top: 1rem;
-        }
-    </style>
+   <style>
+    body {
+        background: url("/static/bg.jpg") no-repeat center center fixed;
+        background-size: cover;
+        color: white;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .form-container {
+        background-color: rgba(0, 0, 0, 0.75);
+        padding: 2rem;
+        border-radius: 1rem;
+        margin-top: 2rem;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+
+    label {
+        color: #ccc;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    select, input, textarea {
+        color: black !important;
+        background-color: #fff !important;
+        border-radius: 0.375rem !important;
+        border: 1px solid #ced4da !important;
+        padding: 0.5rem 0.75rem !important;
+        box-shadow: none !important;
+    }
+
+    .select2-container--bootstrap4 .select2-selection--single {
+        height: 40px !important;
+        padding: 5px 10px;
+        background-color: #fff !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.375rem !important;
+    }
+
+    .select2-container--bootstrap4 .select2-selection__rendered {
+        color: black !important;
+        line-height: 28px !important;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option {
+        color: black !important;
+        background-color: white !important;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option--highlighted {
+        background-color: #cce5ff !important;
+        color: black !important;
+    }
+
+    button, a.btn {
+        margin-top: 1rem;
+    }
+</style>
+
 </head>
 <body>
 <div class="container form-container">
     <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
-    <form method="POST">
+   <form method="POST">
+  <div class="mb-3">
+    <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
+    <select class="form-select" id="user_id" name="user_id" required onchange="copyToFullNameId()">
+        {% for name, uid in members %}
+            <option value="{{ uid }}">{{ name }}</option>
+        {% endfor %}
+    </select>
+</div>
 
-        <div class="mb-3">
-            <label for="user_id" class="form-label">👤 Кого стосується (нік у Discord)</label>
-            <select class="form-select" id="user_id" name="user_id" required onchange="copyToFullNameId()">
-                {% for name, uid in members %}
-                    <option value="{{ uid }}">{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+<div class="mb-3">
+    <label for="full_name_id" class="form-label">🆔 Ім’я Прізвище | Статичний ID</label>
+    <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" required>
+</div>
 
-        <div class="mb-3">
-            <label for="full_name_id" class="form-label">🆔 Ім’я Прізвище | Статичний ID</label>
-            <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" required>
-        </div>
 
-        <div class="mb-3">
-            <label for="action" class="form-label">📌 Дія</label>
-            <select class="form-select" id="action" name="action" required>
-                <option value="Прийнято">Прийнято</option>
-                <option value="Підвищено">Підвищено</option>
-                <option value="Понижено">Понижено</option>
-                <option value="Вигнано">Вигнано</option>
-            </select>
-        </div>
 
-        <div class="mb-3">
-            <label for="role_id" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
-            <select class="form-select" id="role_id" name="role_id" onchange="copyRoleName()">
-                <option value="">Без зміни</option>
-                {% for name, rid in roles %}
-                    <option value="{{ rid }}">{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <div class="mb-3">
+        <label for="action" class="form-label">📌 Дія</label>
+        <select class="form-select" id="action" name="action" required>
+            <option value="Прийнято">Прийнято</option>
+            <option value="Підвищено">Підвищено</option>
+            <option value="Понижено">Понижено</option>
+            <option value="Вигнано">Вигнано</option>
+        </select>
+    </div>
 
-        <div class="mb-3">
-            <label for="role_name" class="form-label">📛 Назва ролі</label>
-            <input type="text" class="form-control" id="role_name" name="role_name" readonly placeholder="Буде автоматично заповнено">
-        </div>
+    <div class="mb-3">
+        <label for="role_id" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
+        <select class="form-select" id="role_id" name="role_id">
+            <option value="">Без зміни</option>
+            {% for name, rid in roles %}
+                <option value="{{ rid }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-        <div class="mb-3">
-            <label for="reason" class="form-label">📝 Причина (посилання або коментар)</label>
-            <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ 1 від 20.07.2025'"></textarea>
-        </div>
+    <div class="mb-3">
+        <label for="reason" class="form-label">📝 Причина (посилання або коментар)</label>
+        <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ 1 від 20.07.2025'"></textarea>
+    </div>
 
-        <button type="submit" class="btn btn-success">✅ Застосувати дію</button>
-        <a href="/history" class="btn btn-outline-light ms-3">📋 Переглянути історію</a>
-        <a href="/logout" class="btn btn-outline-danger float-end">🚪 Вийти</a>
-    </form>
+    <button type="submit" class="btn btn-success">✅ Застосувати дію</button>
+    <a href="/history" class="btn btn-outline-light ms-3">📋 Переглянути історію</a>
+    <a href="/logout" class="btn btn-outline-danger float-end">🚪 Вийти</a>
+</form>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
@@ -122,28 +128,23 @@
             placeholder: "Оберіть користувача",
             width: '100%'
         });
-        $('#role_id').select2({
-            theme: 'bootstrap4',
-            placeholder: "Оберіть роль",
-            width: '100%'
-        });
     });
-
-    function copyToFullNameId() {
-        const select = document.getElementById("user_id");
-        const selectedText = select.options[select.selectedIndex].text;
-        document.getElementById("full_name_id").value = selectedText + " | ";
-    }
-
-    function copyRoleName() {
-        const select = document.getElementById("role_id");
-        const selectedText = select.options[select.selectedIndex].text;
-        if (select.value !== "") {
-            document.getElementById("role_name").value = selectedText;
-        } else {
-            document.getElementById("role_name").value = "";
-        }
-    }
 </script>
+<script>
+function copyToFullNameId() {
+    const select = document.getElementById("user_id");
+    const selectedText = select.options[select.selectedIndex].text;
+    document.getElementById("full_name_id").value = selectedText + " | ";
+}
+</script>
+<script>
+function copyToFullNameId() {
+    const select = document.getElementById("user_id");
+    const selectedText = select.options[select.selectedIndex].text;
+    document.getElementById("full_name_id").value = selectedText + " | ";
+}
+</script>
+
+
 </body>
 </html>

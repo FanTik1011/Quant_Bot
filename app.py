@@ -20,17 +20,11 @@ CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 ALLOWED_ROLES = os.getenv("ALLOWED_ROLES").split(",")
 
-ALLOWED_ROLE_NAMES = [
-    "Новобранець", "Рекрут", "Солдат", "Молодший Сержант", "Сержант", "Старший Сержант",
-    "Штаб-Сержант", "Молодший Лейтенант", "Лейтенант", "Старший Лейтенант",
-    "Капітан", "Майор", "Підполковник", "Полковник"
-]
-
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# БД
+# Ініціалізація БД
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
@@ -106,7 +100,7 @@ def dashboard():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
-    roles = [(r.name, r.id) for r in guild.roles if r.name in ALLOWED_ROLE_NAMES]
+    roles = [(r.name, r.id) for r in guild.roles if not r.managed and r.name != "@everyone"]
 
     if request.method == "POST":
         executor = session["user"]["username"]
@@ -115,21 +109,33 @@ def dashboard():
         action = request.form.get("action")
         role_id = request.form.get("role_id")
         reason = request.form.get("reason", "Без причини")
-        full_name_id = request.form.get("full_name_id", "Невідомо")
 
         member = discord.utils.get(guild.members, id=int(target_id))
         role = discord.utils.get(guild.roles, id=int(role_id)) if role_id else None
 
+        # Зміна ролі
+        if action in ["Прийнято", "Підвищено", "Понижено"]:
+            old_roles = [r for r in member.roles if r.name in ALLOWED_ROLES]
+            awaitable = []
+            if old_roles:
+                awaitable.append(member.remove_roles(*old_roles))
+            if role:
+                awaitable.append(member.add_roles(role))
+
+        # Краще embed повідомлення
+        full_name_id = request.form.get("full_name_id", "Невідомо")
+
+
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 **Кого:** {member.mention} | `{full_name_id}`\n"
-                f"📌 **Дія:** `{action}`\n"
-                f"📝 **Підстава:** {reason}\n"
-                f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
-                f"✍️ **Хто заповнив:** <@{executor_id}>\n"
-                f"━━━━━━━━━━━━━━━━━━━"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 **Кого:** {member.mention} | `{full_name_id}`\n"
+        f"📌 **Дія:** `{action}`\n"
+        f"📝 **Підстава:** {reason}\n"
+        f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`\n"
+        f"✍️ **Хто заповнив:** <@{executor_id}>\n"
+        f"━━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.blue()
         )
@@ -139,6 +145,7 @@ def dashboard():
         if log_channel:
             bot.loop.create_task(log_channel.send(embed=embed))
 
+        # БД запис
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("INSERT INTO actions (executor, target, action, role, reason, date) VALUES (?, ?, ?, ?, ?, ?)",
