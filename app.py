@@ -24,7 +24,7 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Створення бази даних
+# Ініціалізація бази даних
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
@@ -105,22 +105,28 @@ def dashboard():
         executor = session["user"]["username"]
         executor_id = session["user"]["id"]
         target_id = request.form.get("user_id")
+        full_name_id = request.form.get("full_name_id", "Невідомо")
         action = request.form.get("action")
         new_role = request.form.get("role_name", "").strip()
         reason = request.form.get("reason", "Без причини")
-        full_name_id = request.form.get("full_name_id", "Невідомо")
 
-        member = discord.utils.get(guild.members, id=int(target_id))
+        # Спроба знайти члена серверу за ID
+        try:
+            member = discord.utils.get(guild.members, id=int(target_id))
+        except:
+            member = None
+
+        mention = member.mention if member else f"`{target_id}`"
 
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
                 f"━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 **Кого:** {member.mention} | {full_name_id}\n"
-                f"📌 **Дія:** {action}\n"
-                f"🎖️ **Роль:** {new_role if new_role else '-'}\n"
+                f"👤 **Кого:** {mention} | `{full_name_id}`\n"
+                f"📌 **Дія:** `{action}`\n"
+                f"🎖️ **Роль:** `{new_role if new_role else '-'}`\n"
                 f"📝 **Підстава:** {reason}\n"
-                f"🕒 **Дата:** {datetime.now().strftime('%d.%m.%Y')}\n"
+                f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y')}`\n"
                 f"✍️ **Хто заповнив:** <@{executor_id}>\n"
                 f"━━━━━━━━━━━━━━━━━━━"
             ),
@@ -132,10 +138,13 @@ def dashboard():
         if log_channel:
             bot.loop.create_task(log_channel.send(embed=embed))
 
+        # Якщо учасника немає, записати ім’я вручну
+        target_name = member.display_name if member else target_id
+
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("INSERT INTO actions (executor, target, action, role, reason, date) VALUES (?, ?, ?, ?, ?, ?)",
-                      (executor, member.display_name, action, new_role if new_role else "-", reason,
+                      (executor, target_name, action, new_role if new_role else "-", reason,
                        datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             conn.commit()
 
@@ -155,9 +164,7 @@ def history():
             try:
                 formatted_date = datetime.strptime(row[6], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
             except:
-                formatted_date = row[6]  # Якщо формат неочікуваний — залишаємо як є
-
-            # Додаємо новий кортеж із форматованою датою
+                formatted_date = row[6]
             actions.append((row[0], row[1], row[2], row[3], row[4], row[5], formatted_date))
 
     return render_template("history.html", actions=actions)
