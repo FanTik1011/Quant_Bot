@@ -287,14 +287,14 @@ def tickets():
                 now_kyiv.strftime("%Y-%m-%d %H:%M:%S")
             ))
             conn.commit()
-
+            formatted_amount = f"${amount:,.2f}"
         # embed
         embed = discord.Embed(
             title="🎫 Облік військових квитків",
             description=(
                 f"👤 **Кому:** {name} | `{static_id}`\n"
                 f"📆 **Днів:** {days}\n"
-                f"💰 **Сума:** `{amount:.2f}$`\n"
+                 f"💰 **Сума:** `{formatted_amount}`\n"
                 f"🗓 **Дата:** `{now_kyiv.strftime('%d.%m.%Y')}`\n"
                 f"✍️ **Видав:** <@{issued_id}>"
             ),
