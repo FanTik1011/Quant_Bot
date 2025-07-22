@@ -11,7 +11,6 @@
             color: white;
             font-family: 'Segoe UI', sans-serif;
         }
-
         .form-container {
             background-color: rgba(0, 0, 0, 0.75);
             padding: 2rem;
@@ -19,24 +18,19 @@
             margin-top: 2rem;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
         }
-
         label {
             color: #ccc;
             font-weight: 500;
             margin-bottom: 0.5rem;
         }
-
-        input, textarea {
+        input {
             color: black !important;
             background-color: #fff !important;
             border-radius: 0.375rem !important;
             border: 1px solid #ced4da !important;
             padding: 0.5rem 0.75rem !important;
         }
-
-        .btn {
-            margin-top: 1rem;
-        }
+        .btn { margin-top: 1rem; }
     </style>
 </head>
 <body>
@@ -47,22 +41,18 @@
             <label for="name" class="form-label">👤 Ім’я кому видавали</label>
             <input type="text" class="form-control" id="name" name="name" placeholder="Nei Wayne" required>
         </div>
-
         <div class="mb-3">
             <label for="static_id" class="form-label">🆔 Статичний ID</label>
             <input type="text" class="form-control" id="static_id" name="static_id" placeholder="19311" required>
         </div>
-
         <div class="mb-3">
             <label for="days" class="form-label">📆 На скільки днів</label>
             <input type="number" class="form-control" id="days" name="days" placeholder="7" required>
         </div>
-
         <div class="mb-3">
             <label for="amount" class="form-label">💰 Сума</label>
             <input type="number" class="form-control" id="amount" name="amount" placeholder="2000" required>
         </div>
-
         <button type="submit" class="btn btn-success">✅ Зберегти запис</button>
         <a href="/logout" class="btn btn-outline-danger float-end">🚪 Вийти</a>
     </form>
