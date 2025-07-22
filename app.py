@@ -267,13 +267,11 @@ def tickets():
         issued_id = session["user"]["id"]
         name      = request.form["name"]
         static_id = request.form["static_id"]
-        days      = request.form["days"].strip()
+        days      = int(request.form["days"])
         amount    = float(request.form["amount"])
-       # Беремо відразу строку, як її ввів користувач:
-        amount    = request.form["amount"].strip()
         now_kyiv  = datetime.now(ZoneInfo("Europe/Kyiv"))
 
-        # Запис у БД — теж зберігаємо строку
+        # запис у БД
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("""
@@ -283,23 +281,21 @@ def tickets():
             """, (
                 name,
                 static_id,
-                int(days),
-               amount,
-               amount,            # рядок
+                days,
+                amount,
                 issuer,
                 now_kyiv.strftime("%Y-%m-%d %H:%M:%S")
             ))
             conn.commit()
 
-        # Відображаємо точні введені дані
+        # embed
         embed = discord.Embed(
             title="🎫 Облік військових квитків",
             description=(
                 f"👤 **Кому:** {name} | `{static_id}`\n"
                 f"📆 **Днів:** {days}\n"
--               f"💰 **Сума:** `{float(amount):.2f}$`\n"
-+               f"💰 **Сума:** `{amount}`\n"
-                f"🗓 **Дата:** `{now_kyiv.strftime('%d.%m.%Y %H:%M')}`\n"
+                f"💰 **Сума:** `{amount:.2f}$`\n"
+                f"🗓 **Дата:** `{now_kyiv.strftime('%d.%m.%Y')}`\n"
                 f"✍️ **Видав:** <@{issued_id}>"
             ),
             color=discord.Color.green()
@@ -311,7 +307,6 @@ def tickets():
         return redirect("/tickets")
 
     return render_template("tickets.html")
-
 
 # ——— Запуск ———
 
