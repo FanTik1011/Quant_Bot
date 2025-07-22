@@ -3,32 +3,38 @@ import threading
 import sqlite3
 import requests
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, session, Response, send_file
+from flask import Flask, render_template, request, redirect, session, send_file
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
+# ─────────── Завантаження налаштувань ───────────
 load_dotenv()
 app = Flask(__name__, static_folder="static")
 app.secret_key = os.getenv("SECRET_KEY")
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GUILD_ID = int(os.getenv("GUILD_ID"))
-LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID"))
-CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
-CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
-ALLOWED_ROLES = os.getenv("ALLOWED_ROLES").split(",")
+BOT_TOKEN               = os.getenv("BOT_TOKEN")
+GUILD_ID                = int(os.getenv("GUILD_ID"))
+LOG_CHANNEL_ID          = int(os.getenv("LOG_CHANNEL_ID"))
+TICKETS_CHANNEL_ID      = int(os.getenv("TICKETS_CHANNEL_ID"))
+CLIENT_ID               = os.getenv("DISCORD_CLIENT_ID")
+CLIENT_SECRET           = os.getenv("DISCORD_CLIENT_SECRET")
+REDIRECT_URI            = os.getenv("DISCORD_REDIRECT_URI")             # для кадрового аудиту
+TICKETS_REDIRECT_URI    = os.getenv("DISCORD_TICKETS_REDIRECT_URI")     # для квитків
+ALLOWED_ROLES           = os.getenv("ALLOWED_ROLES").split(",")        # кадри
+ALLOWED_TICKET_ROLES    = ["Командування National Guard"]             # квитки
 
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Ініціалізація бази даних
+# ─────────── Ініціалізація БД ───────────
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS actions (
+        # таблиця кадрового аудиту
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS actions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             executor TEXT,
             target TEXT,
@@ -37,17 +43,35 @@ def init_db():
             reason TEXT,
             date TEXT
         )''')
+        # таблиця обліку військових квитків
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS military_tickets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            static_id TEXT NOT NULL,
+            days INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            issued_by TEXT NOT NULL,
+            date TEXT NOT NULL
+        )''')
         conn.commit()
 
 init_db()
 
+# ─────────── Кадровий аудит ───────────
 @app.route("/")
 def index():
     return render_template("login.html")
 
 @app.route("/login")
 def login():
-    url = f"https://discord.com/api/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify%20guilds.members.read"
+    url = (
+        f"https://discord.com/api/oauth2/authorize?"
+        f"client_id={CLIENT_ID}"
+        f"&redirect_uri={REDIRECT_URI}"
+        f"&response_type=code"
+        f"&scope=identify%20guilds.members.read"
+    )
     return redirect(url)
 
 @app.route("/callback")
@@ -63,89 +87,92 @@ def callback():
         "code": code,
         "redirect_uri": REDIRECT_URI,
     }
-
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
     if not r.ok:
-        return f"❌ Помилка при отриманні токену. {r.status_code}: {r.text}"
+        return f"❌ Помилка токену: {r.status_code} {r.text}"
 
-    access_token = r.json().get("access_token")
-    user_info = requests.get("https://discord.com/api/users/@me", headers={
-        "Authorization": f"Bearer {access_token}"
-    }).json()
+    access_token = r.json()["access_token"]
+    user_info = requests.get(
+        "https://discord.com/api/users/@me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
 
     guild_member = requests.get(
         f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
         headers={"Authorization": f"Bearer {access_token}"}
     )
-
     if guild_member.status_code != 200:
         return "❌ Ви не є учасником сервера."
 
     roles = guild_member.json().get("roles", [])
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
-
     for r_id in roles:
         role = discord.utils.get(guild.roles, id=int(r_id))
         if role and role.name in ALLOWED_ROLES:
             session["user"] = user_info
             return redirect("/dashboard")
 
-    return "❌ У вас немає доступу."
+    return "❌ У вас немає доступу до кадрового аудиту."
 
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    guild   = discord.utils.get(bot.guilds, id=GUILD_ID)
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
 
     if request.method == "POST":
-        executor = session["user"]["username"]
+        executor    = session["user"]["username"]
         executor_id = session["user"]["id"]
-        target_id = request.form.get("user_id")
-        full_name_id = request.form.get("full_name_id", "Невідомо")
-        action = request.form.get("action")
-        new_role = request.form.get("role_name", "").strip()
-        reason = request.form.get("reason", "Без причини")
+        target_id   = request.form["user_id"]
+        full_name   = request.form.get("full_name_id", "Невідомо")
+        action      = request.form["action"]
+        new_role    = request.form.get("role_name", "").strip()
+        reason      = request.form.get("reason", "Без причини")
 
-        # Спроба знайти члена серверу за ID
-        try:
-            member = discord.utils.get(guild.members, id=int(target_id))
-        except:
-            member = None
-
+        # знайти учасника
+        member = discord.utils.get(guild.members, id=int(target_id)) if target_id.isdigit() else None
         mention = member.mention if member else f"`{target_id}`"
+        target_name = member.display_name if member else target_id
 
+        # embed
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
                 f"━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 **Кого:** {mention} | `{full_name_id}`\n"
+                f"👤 **Кого:** {mention} | `{full_name}`\n"
                 f"📌 **Дія:** `{action}`\n"
-                f"🎖️ **Роль:** `{new_role if new_role else '-'}`\n"
+                f"🎖️ **Роль:** `{new_role or '-'}\n"
                 f"📝 **Підстава:** {reason}\n"
-                f"🕒 **Дата:** `{datetime.now().strftime('%d.%m.%Y')}`\n"
+                f"🕒 **Дата:** `{datetime.now():%d.%m.%Y}`\n"
                 f"✍️ **Хто заповнив:** <@{executor_id}>\n"
                 f"━━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.blue()
         )
-        embed.set_footer(text="Форма кадрового аудиту • National Guard")
+        embed.set_footer(text="National Guard • Кадровий аудит")
 
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            bot.loop.create_task(log_channel.send(embed=embed))
+        ch = bot.get_channel(LOG_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
 
-        # Якщо учасника немає, записати ім’я вручну
-        target_name = member.display_name if member else target_id
-
+        # запис у БД
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
-            c.execute("INSERT INTO actions (executor, target, action, role, reason, date) VALUES (?, ?, ?, ?, ?, ?)",
-                      (executor, target_name, action, new_role if new_role else "-", reason,
-                       datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            c.execute("""
+                INSERT INTO actions
+                (executor, target, action, role, reason, date)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                executor,
+                target_name,
+                action,
+                new_role or "-",
+                reason,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ))
             conn.commit()
 
         return redirect("/dashboard")
@@ -158,14 +185,14 @@ def history():
         c = conn.cursor()
         c.execute("SELECT * FROM actions ORDER BY date DESC")
         rows = c.fetchall()
-
-        actions = []
-        for row in rows:
-            try:
-                formatted_date = datetime.strptime(row[6], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
-            except:
-                formatted_date = row[6]
-            actions.append((row[0], row[1], row[2], row[3], row[4], row[5], formatted_date))
+    # формат дати без часу
+    actions = []
+    for r in rows:
+        try:
+            d = datetime.strptime(r[6], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
+        except:
+            d = r[6]
+        actions.append((r[0], r[1], r[2], r[3], r[4], r[5], d))
 
     return render_template("history.html", actions=actions)
 
@@ -178,6 +205,104 @@ def logout():
     session.clear()
     return redirect("/")
 
+# ─────────── Облік військових квитків ───────────
+@app.route("/login_tickets")
+def login_tickets():
+    url = (
+        f"https://discord.com/api/oauth2/authorize?"
+        f"client_id={CLIENT_ID}"
+        f"&redirect_uri={TICKETS_REDIRECT_URI}"
+        f"&response_type=code"
+        f"&scope=identify%20guilds.members.read"
+    )
+    return redirect(url)
+
+@app.route("/tickets_callback")
+def tickets_callback():
+    code = request.args.get("code")
+    if not code:
+        return "❌ Помилка авторизації."
+
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": TICKETS_REDIRECT_URI,
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
+    if not r.ok:
+        return f"❌ Помилка токену: {r.status_code} {r.text}"
+
+    access_token = r.json()["access_token"]
+    user_info = requests.get(
+        "https://discord.com/api/users/@me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
+
+    guild_member = requests.get(
+        f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    if guild_member.status_code != 200:
+        return "❌ Ви не є учасником сервера."
+
+    roles = guild_member.json().get("roles", [])
+    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    for r_id in roles:
+        role = discord.utils.get(guild.roles, id=int(r_id))
+        if role and role.name in ALLOWED_TICKET_ROLES:
+            session["user"] = user_info
+            return redirect("/tickets")
+
+    return "❌ У вас немає доступу до обліку квитків."
+
+@app.route("/tickets", methods=["GET", "POST"])
+def tickets():
+    if "user" not in session:
+        return redirect("/")
+
+    if request.method == "POST":
+        issuer    = session["user"]["username"]
+        issued_id = session["user"]["id"]
+        name      = request.form["name"]
+        static_id = request.form["static_id"]
+        days      = int(request.form["days"])
+        amount    = int(request.form["amount"])
+        date_str  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # запис у БД
+        with sqlite3.connect("audit.db") as conn:
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO military_tickets
+                (name, static_id, days, amount, issued_by, date)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (name, static_id, days, amount, issuer, date_str))
+            conn.commit()
+
+        # embed у Discord
+        embed = discord.Embed(
+            title="🎫 Облік військових квитків",
+            description=(
+                f"👤 **Кому:** {name} | `{static_id}`\n"
+                f"📆 **Днів:** {days}\n"
+                f"💰 **Сума:** {amount}\n"
+                f"🕒 **Дата:** {datetime.now():%d.%m.%Y %H:%M}\n"
+                f"✍️ **Видав:** <@{issued_id}>"
+            ),
+            color=discord.Color.green()
+        )
+        ch = bot.get_channel(TICKETS_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
+
+        return redirect("/tickets")
+
+    return render_template("tickets.html")
+
+# ─────────── Запуск ───────────
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
