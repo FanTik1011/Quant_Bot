@@ -23,8 +23,6 @@ REDIRECT_URI         = os.getenv("DISCORD_REDIRECT_URI")
 TICKETS_REDIRECT_URI = os.getenv("DISCORD_TICKETS_REDIRECT_URI")
 ALLOWED_ROLES        = os.getenv("ALLOWED_ROLES").split(",")
 ALLOWED_TICKET_ROLES = ["Командування National Guard"]
-ALLOWED_CRAFT_ROLES =["National Guard"]
-DISCORD_CRAFT_REDIRECT_URI= os.getenv["DISCORD_CRAFT_REDIRECT_URI"]
 
 intents = discord.Intents.default()
 intents.members = True
@@ -309,61 +307,6 @@ def tickets():
         return redirect("/tickets")
 
     return render_template("tickets.html")
-# ——— Звіт-Крафту ———
-@app.route("/login_craft")
-def login_craft():
-    url = (
-        f"https://discord.com/api/oauth2/authorize?"
-        f"client_id={CLIENT_ID}"
-        f"&redirect_uri={DISCORD_CRAFT_REDIRECT_URI}"
-        f"&response_type=code"
-        f"&scope=identify%20guilds.members.read"
-    )
-    return redirect(url)
-@app.route("craft_callback")
-def tickets_callback():
-    code = request.args.get("code")
-    if not code:
-        return "❌ Помилка авторизації."
-
-    data = {
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri":DISCORD_CRAFT_REDIRECT_URI,
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
-    if not r.ok:
-        return f"❌ Помилка токену: {r.status_code} {r.text}"
-
-    access_token = r.json()["access_token"]
-    user_info = requests.get(
-        "https://discord.com/api/users/@me",
-        headers={"Authorization": f"Bearer {access_token}"}
-    ).json()
-
-    guild_member = requests.get(
-        f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    if guild_member.status_code != 200:
-        return "❌ Ви не є учасником сервера."
-
-    roles = guild_member.json().get("roles", [])
-    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
-    for r_id in roles:
-        role = discord.utils.get(guild.roles, id=int(r_id))
-        if role and role.name in ALLOWED_CRAFT_ROLES:
-            session["user"] = user_info
-            return redirect("/craft")
-
-    return "❌ У вас немає доступу до обліку квитків."
-@app.route("/craft", methods=["GET", "POST"])
-def tickets():
-    if "user" not in session:
-        return redirect("/")
 
 # ——— Запуск ———
 
