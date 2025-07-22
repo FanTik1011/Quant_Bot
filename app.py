@@ -294,7 +294,7 @@ def tickets():
             description=(
                 f"👤 **Кому:** {name} | `{static_id}`\n"
                 f"📆 **Днів:** {days}\n"
-                f"💰 **Сума:** `{amount:.2f}$`\n"
+                f"💰 **Сума:** `{amount:.3f}$`\n"
                 f"🗓 **Дата:** `{now_kyiv.strftime('%d.%m.%Y')}`\n"
                 f"✍️ **Видав:** <@{issued_id}>"
             ),
