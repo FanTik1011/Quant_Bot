@@ -3,32 +3,31 @@ import threading
 import sqlite3
 import requests
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from flask import Flask, render_template, request, redirect, session, send_file
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
-# ─────────── Завантаження налаштувань ───────────
 load_dotenv()
 app = Flask(__name__, static_folder="static")
 app.secret_key = os.getenv("SECRET_KEY")
 
-BOT_TOKEN               = os.getenv("BOT_TOKEN")
-GUILD_ID                = int(os.getenv("GUILD_ID"))
-LOG_CHANNEL_ID          = int(os.getenv("LOG_CHANNEL_ID"))
-TICKETS_CHANNEL_ID      = int(os.getenv("TICKETS_CHANNEL_ID"))
-CLIENT_ID               = os.getenv("DISCORD_CLIENT_ID")
-CLIENT_SECRET           = os.getenv("DISCORD_CLIENT_SECRET")
-REDIRECT_URI            = os.getenv("DISCORD_REDIRECT_URI")             # для кадрового аудиту
-TICKETS_REDIRECT_URI    = os.getenv("DISCORD_TICKETS_REDIRECT_URI")     # для квитків
-ALLOWED_ROLES           = os.getenv("ALLOWED_ROLES").split(",")        # кадри
-ALLOWED_TICKET_ROLES    = ["Командування National Guard"]             # квитки
+BOT_TOKEN            = os.getenv("BOT_TOKEN")
+GUILD_ID             = int(os.getenv("GUILD_ID"))
+LOG_CHANNEL_ID       = int(os.getenv("LOG_CHANNEL_ID"))
+TICKETS_CHANNEL_ID   = int(os.getenv("TICKETS_CHANNEL_ID"))
+CLIENT_ID            = os.getenv("DISCORD_CLIENT_ID")
+CLIENT_SECRET        = os.getenv("DISCORD_CLIENT_SECRET")
+REDIRECT_URI         = os.getenv("DISCORD_REDIRECT_URI")
+TICKETS_REDIRECT_URI = os.getenv("DISCORD_TICKETS_REDIRECT_URI")
+ALLOWED_ROLES        = os.getenv("ALLOWED_ROLES").split(",")
+ALLOWED_TICKET_ROLES = ["Командування National Guard"]
 
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ─────────── Ініціалізація БД ───────────
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
@@ -43,22 +42,23 @@ def init_db():
             reason TEXT,
             date TEXT
         )''')
-        # таблиця обліку військових квитків
+        # таблиця військових квитків
         c.execute('''
         CREATE TABLE IF NOT EXISTS military_tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            static_id TEXT NOT NULL,
-            days INTEGER NOT NULL,
-            amount INTEGER NOT NULL,
-            issued_by TEXT NOT NULL,
-            date TEXT NOT NULL
+            name TEXT,
+            static_id TEXT,
+            days INTEGER,
+            amount REAL,
+            issued_by TEXT,
+            date TEXT
         )''')
         conn.commit()
 
 init_db()
 
-# ─────────── Кадровий аудит ───────────
+# ——— Кадровий аудит ———
+
 @app.route("/")
 def index():
     return render_template("login.html")
@@ -132,21 +132,19 @@ def dashboard():
         new_role    = request.form.get("role_name", "").strip()
         reason      = request.form.get("reason", "Без причини")
 
-        # знайти учасника
         member = discord.utils.get(guild.members, id=int(target_id)) if target_id.isdigit() else None
         mention = member.mention if member else f"`{target_id}`"
         target_name = member.display_name if member else target_id
 
-        # embed
         embed = discord.Embed(
             title="📋 Кадровий аудит | National Guard",
             description=(
                 f"━━━━━━━━━━━━━━━━━━━\n"
                 f"👤 **Кого:** {mention} | `{full_name}`\n"
                 f"📌 **Дія:** `{action}`\n"
-                f"🎖️ **Роль:** `{new_role or '-'}\n"
+                f"🎖️ **Роль:** `{new_role or '-'}`\n"
                 f"📝 **Підстава:** {reason}\n"
-                f"🕒 **Дата:** `{datetime.now():%d.%m.%Y}`\n"
+                f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
                 f"✍️ **Хто заповнив:** <@{executor_id}>\n"
                 f"━━━━━━━━━━━━━━━━━━━"
             ),
@@ -158,7 +156,6 @@ def dashboard():
         if ch:
             bot.loop.create_task(ch.send(embed=embed))
 
-        # запис у БД
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("""
@@ -171,7 +168,7 @@ def dashboard():
                 action,
                 new_role or "-",
                 reason,
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                datetime.now(ZoneInfo("Europe/Kyiv")).strftime("%Y-%m-%d %H:%M:%S")
             ))
             conn.commit()
 
@@ -185,7 +182,7 @@ def history():
         c = conn.cursor()
         c.execute("SELECT * FROM actions ORDER BY date DESC")
         rows = c.fetchall()
-    # формат дати без часу
+
     actions = []
     for r in rows:
         try:
@@ -205,7 +202,9 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ─────────── Облік військових квитків ───────────
+
+# ——— Облік військових квитків ———
+
 @app.route("/login_tickets")
 def login_tickets():
     url = (
@@ -269,8 +268,8 @@ def tickets():
         name      = request.form["name"]
         static_id = request.form["static_id"]
         days      = int(request.form["days"])
-        amount    = int(request.form["amount"])
-        date_str  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        amount    = float(request.form["amount"])
+        now_kyiv  = datetime.now(ZoneInfo("Europe/Kyiv"))
 
         # запис у БД
         with sqlite3.connect("audit.db") as conn:
@@ -279,17 +278,24 @@ def tickets():
                 INSERT INTO military_tickets
                 (name, static_id, days, amount, issued_by, date)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (name, static_id, days, amount, issuer, date_str))
+            """, (
+                name,
+                static_id,
+                days,
+                amount,
+                issuer,
+                now_kyiv.strftime("%Y-%m-%d %H:%M:%S")
+            ))
             conn.commit()
 
-        # embed у Discord
+        # embed
         embed = discord.Embed(
             title="🎫 Облік військових квитків",
             description=(
                 f"👤 **Кому:** {name} | `{static_id}`\n"
                 f"📆 **Днів:** {days}\n"
-                f"💰 **Сума:** {amount}\n"
-                f"🕒 **Дата:** {datetime.now():%d.%m.%Y %H:%M}\n"
+                f"💰 **Сума:** `{amount:.2f}$`\n"
+                f"🗓 **Дата:** `{now_kyiv.strftime('%d.%m.%Y')}`\n"
                 f"✍️ **Видав:** <@{issued_id}>"
             ),
             color=discord.Color.green()
@@ -302,7 +308,8 @@ def tickets():
 
     return render_template("tickets.html")
 
-# ─────────── Запуск ───────────
+# ——— Запуск ———
+
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
