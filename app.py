@@ -33,9 +33,21 @@ VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID)
 
 # Список транспорту (приклад; допиши свої)
 VEHICLES = [
-    {"id": "car_01", "name": "Dodge Charger Sheriff", "plate": "BCSD-001", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_02", "name": "Ford Explorer Sheriff", "plate": "BCSD-002", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_03", "name": "Motorcycle Sheriff",    "plate": "BCSD-003", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_01", "name": "Vapid f150", "plate": "BCSD-07", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_02", "name": "Vapid f150", "plate": "BCSD-16", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_03", "name": "Vapid f150", "plate": "BCSD-08", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_04", "name": "Vapid f150", "plate": "BCSD-05", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_05", "name": "Vapid f150", "plate": "BCSD-19", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_06", "name": "Vapid f150", "plate": "BCSD-17", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_07", "name": "Vapid f150", "plate": "BCSD-18", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_08", "name": "Vapid f150", "plate": "BCSD-06", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_10", "name": "Vapid explorer", "plate": "BCSD-03", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_11", "name": "Vapid explorer", "plate": "BCSD-14", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_12", "name": "Vapid explorer", "plate": "BCSD-01", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_13", "name": "Vapid explorer", "plate": "BCSD-02", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_14", "name": "Vapid explorer", "plate": "BCSD-04", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_15", "name": "Vapid explorer", "plate": "BCSD-13", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_16", "name": "Vapid explorer", "plate": "BCSD-15", "img": "/static/vehicles/car2.jpg"},
 ]
 
 # ── Discord bot ────────────────────────────────────────────────────────────────
