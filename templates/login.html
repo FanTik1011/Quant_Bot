@@ -5,156 +5,119 @@
   <title>BCSD Intranet | Discord Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <style>
-    body {
-      background: url("/static/bg.jpg") center/cover fixed no-repeat;
+    :root{
+      --bg-overlay: linear-gradient(180deg, rgba(12,14,25,.65), rgba(12,14,25,.75));
+      --glass: rgba(18,20,33,.62);
+      --glass-strong: rgba(18,20,33,.78);
+      --border: rgba(255,255,255,.14);
+      --text-soft: rgba(255,255,255,.85);
+      --bcsd: #5865F2;
+      --veh: #0ea5e9;
+      --sai: #43B581;
+      --seb: #eab308;
+      --sa: #f97316;
+      --spd: #ef4444;
+    }
+    body{
+      background:
+        var(--bg-overlay),
+        url("/static/bg.jpg") center/cover fixed no-repeat;
       min-height: 100vh;
-      color: #fff;
-      padding: 30px;
+      color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      padding: 28px;
     }
-    .section-title {
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 2rem;
-      font-weight: 700;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    .shell{ width:100%; max-width:1200px; }
+    .hero{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px; margin-bottom:18px;
     }
-    .dept-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
+    .hero h1{ font-size: clamp(1.4rem, 2.2vw, 2.2rem); margin:0; letter-spacing:.2px; text-shadow: 0 6px 24px rgba(0,0,0,.45);}
+    .hero small{ color: var(--text-soft); opacity:.9; }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+    .card-glass{
+      background: var(--glass);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:22px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      transition: transform .25s, box-shadow .25s, background .25s;
     }
-    .dept-card {
-      background: rgba(20, 22, 35, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 10px 28px rgba(0,0,0,.45);
-      backdrop-filter: blur(6px);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: transform 0.25s;
-    }
-    .dept-card:hover {
-      transform: translateY(-3px);
-    }
-    .dept-icon {
-      font-size: 2rem;
-      margin-bottom: 10px;
-    }
-    .dept-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .dept-desc {
-      font-size: 0.95rem;
-      color: rgba(255,255,255,0.85);
-      margin-bottom: 15px;
-    }
-    .btn-channel {
-      display: block;
-      width: 100%;
-      border: none;
-      padding: 10px 14px;
-      font-size: 1rem;
-      border-radius: 10px;
-      margin-bottom: 8px;
-      transition: 0.25s;
-      color: white;
-      text-align: center;
-      text-decoration: none;
-    }
-    .btn-audit { background: #5865F2; }
-    .btn-audit:hover { background: #4752C4; }
-
-    .btn-vehicles { background: #0ea5e9; }
-    .btn-vehicles:hover { background: #0785bd; }
-
-    .btn-sai { background: #43B581; }
-    .btn-sai:hover { background: #379366; }
-
-    .btn-seb { background: #ff9800; }
-    .btn-seb:hover { background: #cc7a00; }
-
-    .btn-sa { background: #9c27b0; }
-    .btn-sa:hover { background: #7a1f8a; }
-
-    .btn-spd { background: #f44336; }
-    .btn-spd:hover { background: #c6372b; }
+    .card-glass:hover{ transform: translateY(-3px); box-shadow: 0 24px 60px rgba(0,0,0,.55); background: var(--glass-strong);}
+    .card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
+    .title{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; font-size:1.25rem;}
+    .desc{ color:var(--text-soft); margin:6px 0 16px }
+    .pill{ border:1px solid var(--border); background: rgba(255,255,255,.08); color:#fff; padding:6px 10px; border-radius:999px; font-size:.85rem; }
+    .btn-wide{ display:block; width:100%; border:none; padding:12px 16px; font-size:1.02rem; border-radius:12px; color:#fff; text-decoration:none; text-align:center; transition:.25s }
+    .btn-bcsd{ background: var(--bcsd) } .btn-bcsd:hover{ background: #4752C4; transform: translateY(-1px) }
+    .btn-veh{ background: var(--veh) } .btn-veh:hover{ background: #0785bd; transform: translateY(-1px) }
+    .btn-sai{ background: var(--sai) } .btn-sai:hover{ background: #379366; transform: translateY(-1px) }
+    .btn-disabled{ background: rgba(255,255,255,.15); cursor:not-allowed; }
+    @media (max-width: 640px){ .hero{ flex-direction:column; align-items:flex-start } }
   </style>
 </head>
 <body>
-
-  <h1 class="section-title">📂 BCSD Intranet</h1>
-
-  <div class="dept-grid">
-    <!-- BCSD -->
-    <div class="dept-card">
-      <div>
-        <div class="dept-icon">🛡️</div>
-        <div class="dept-title">BCSD</div>
-        <div class="dept-desc">Інструменти для Кадрового Аудиту та управління транспортом BCSD.</div>
-      </div>
-      <div>
-        <a href="/login" class="btn-channel btn-audit">📋 Кадровий Аудит</a>
-        <a href="/login?next=/vehicles" class="btn-channel btn-vehicles">🚓 Транспорт</a>
-      </div>
+  <div class="shell">
+    <div class="hero">
+      <h1>BCSD Intranet</h1>
+      <small>Увійдіть через Discord, щоб користуватися інструментами відділів.</small>
     </div>
 
-    <!-- SAI -->
-    <div class="dept-card">
-      <div>
-        <div class="dept-icon">📢</div>
-        <div class="dept-title">SAI</div>
-        <div class="dept-desc">Подання звітів на підвищення. Доступ для членів відділу SAI.</div>
-      </div>
-      <div>
-        <a href="/login?next=/sai" class="btn-channel btn-sai">🆙 Підвищення</a>
-      </div>
-    </div>
+    <div class="grid">
+      <!-- BCSD -->
+      <section class="card-glass">
+        <div class="card-head">
+          <div class="title">🛡️ BCSD</div>
+          <span class="pill">Відділ</span>
+        </div>
+        <p class="desc">Кадровий аудит та управління транспортом.</p>
+        <a href="/login" class="btn-wide btn-bcsd">📋 Кадровий Аудит</a>
+        <div style="height:8px"></div>
+        <a href="/login?next=/vehicles" class="btn-wide btn-veh">🚓 Транспорт</a>
+      </section>
 
-    <!-- SEB -->
-    <div class="dept-card">
-      <div>
-        <div class="dept-icon">🎯</div>
-        <div class="dept-title">SEB</div>
-        <div class="dept-desc">Спеціальний підрозділ. Канали та звіти для SEB.</div>
-      </div>
-      <div>
-        <a href="/login?next=/seb_reports" class="btn-channel btn-seb">📝 Звіти</a>
-        <a href="/login?next=/seb_ops" class="btn-channel btn-seb">🎯 Операції</a>
-      </div>
-    </div>
+      <!-- SAI -->
+      <section class="card-glass">
+        <div class="card-head">
+          <div class="title">📢 SAI</div>
+          <span class="pill">Відділ</span>
+        </div>
+        <p class="desc">Подання звітів на підвищення у SAI.</p>
+        <a href="/login?next=/sai" class="btn-wide btn-sai">🆙 Підвищення</a>
+      </section>
 
-    <!-- SA -->
-    <div class="dept-card">
-      <div>
-        <div class="dept-icon">⚖️</div>
-        <div class="dept-title">SA</div>
-        <div class="dept-desc">Відділ справ та адміністрування. Управління та моніторинг.</div>
-      </div>
-      <div>
-        <a href="/login?next=/sa_docs" class="btn-channel btn-sa">📄 Документи</a>
-        <a href="/login?next=/sa_cases" class="btn-channel btn-sa">📂 Справи</a>
-      </div>
-    </div>
+      <!-- SEB -->
+      <section class="card-glass">
+        <div class="card-head">
+          <div class="title">🔫 SEB</div>
+          <span class="pill">Відділ</span>
+        </div>
+        <p class="desc">Незабаром...</p>
+        <div class="btn-wide btn-disabled">🚧 У розробці</div>
+      </section>
 
-    <!-- SPD -->
-    <div class="dept-card">
-      <div>
-        <div class="dept-icon">🚔</div>
-        <div class="dept-title">SPD</div>
-        <div class="dept-desc">Поліцейський департамент. Звіти, транспорт та моніторинг.</div>
-      </div>
-      <div>
-        <a href="/login?next=/spd_reports" class="btn-channel btn-spd">📝 Звіти</a>
-        <a href="/login?next=/spd_vehicles" class="btn-channel btn-spd">🚔 Транспорт</a>
-      </div>
+      <!-- SA -->
+      <section class="card-glass">
+        <div class="card-head">
+          <div class="title">⚖️ SA</div>
+          <span class="pill">Відділ</span>
+        </div>
+        <p class="desc">Незабаром...</p>
+        <div class="btn-wide btn-disabled">🚧 У розробці</div>
+      </section>
+
+      <!-- SPD -->
+      <section class="card-glass">
+        <div class="card-head">
+          <div class="title">🚔 SPD</div>
+          <span class="pill">Відділ</span>
+        </div>
+        <p class="desc">Незабаром...</p>
+        <div class="btn-wide btn-disabled">🚧 У розробці</div>
+      </section>
     </div>
   </div>
-
 </body>
 </html>
