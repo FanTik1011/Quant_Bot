@@ -48,6 +48,7 @@ VEHICLES = [
     {"id": "car_14", "name": "Vapid explorer", "plate": "BCSD-04", "img": "/static/vehicles/car2.jpg"},
     {"id": "car_15", "name": "Vapid explorer", "plate": "BCSD-13", "img": "/static/vehicles/car2.jpg"},
     {"id": "car_16", "name": "Vapid explorer", "plate": "BCSD-15", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_16", "name": "Vapid explorer", "plate": "BCSD-12", "img": "/static/vehicles/car2.jpg"},
 ]
 
 # ── Discord bot ────────────────────────────────────────────────────────────────
