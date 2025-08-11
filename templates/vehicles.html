@@ -36,7 +36,30 @@
   </div>
 
   {% if request.args.get('ok') %}
-    <div class="alert alert-success">✅ Запит відправлено у Discord.</div>
+    <div class="alert alert-success">✅ Запит відправлено у Discord. Картка зникла зі списку.</div>
+  {% endif %}
+  {% if request.args.get('returned') %}
+    <div class="alert alert-info">ℹ️ Транспорт повернуто. Дякуємо!</div>
+  {% endif %}
+
+  {% if my_rentals and my_rentals|length > 0 %}
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Мій активний транспорт</h5>
+        {% for r in my_rentals %}
+          <form class="row align-items-center g-2" method="post" action="/vehicles/return">
+            <input type="hidden" name="rental_id" value="{{ r[0] }}">
+            <div class="col-md-4"><strong>{{ r[3] }}</strong></div>
+            <div class="col-md-3">Номера: <span class="badge bg-light text-dark">{{ r[2] }}</span></div>
+            <div class="col-md-3">Час: {{ r[5] }}</div>
+            <div class="col-md-2 text-end">
+              <button class="btn btn-warning w-100" type="submit">Повернути</button>
+            </div>
+          </form>
+          {% if not loop.last %}<hr class="border-secondary my-3">{% endif %}
+        {% endfor %}
+      </div>
+    </div>
   {% endif %}
 
   <div class="row g-4">
@@ -61,6 +84,9 @@
       </div>
     </div>
     {% endfor %}
+    {% if vehicles|length == 0 %}
+      <div class="text-center text-muted">Наразі всі авто зайняті.</div>
+    {% endif %}
   </div>
 </div>
 

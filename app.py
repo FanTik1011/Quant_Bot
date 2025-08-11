@@ -26,29 +26,29 @@ CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 REDIRECT_URI  = os.getenv("DISCORD_REDIRECT_URI")
 
-ALLOWED_ROLES      = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
-SAI_ALLOWED_ROLES  = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
-SAI_LOG_CHANNEL_ID = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+ALLOWED_ROLES       = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
+SAI_ALLOWED_ROLES   = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
+SAI_LOG_CHANNEL_ID  = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 
-# Список транспорту для карток (приклад; допиши свої)
+# Список транспорту (приклад; допиши свої)
 VEHICLES = [
     {"id": "car_01", "name": "Dodge Charger Sheriff", "plate": "BCSD-001", "img": "/static/vehicles/car2.jpg"},
     {"id": "car_02", "name": "Ford Explorer Sheriff", "plate": "BCSD-002", "img": "/static/vehicles/car1.jpg"},
     {"id": "car_03", "name": "Motorcycle Sheriff",    "plate": "BCSD-003", "img": "/static/vehicles/car1.jpg"},
 ]
 
-
 # ── Discord bot ────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ── DB init (без змін у структурах) ───────────────────────────────────────────
+# ── DB init ────────────────────────────────────────────────────────────────────
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
-        c.execute('''
+        # кадровий аудит
+        c.execute("""
         CREATE TABLE IF NOT EXISTS actions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             executor TEXT,
@@ -57,8 +57,9 @@ def init_db():
             role TEXT,
             reason TEXT,
             date TEXT
-        )''')
-        c.execute('''
+        )""")
+        # військові квитки (залишаємо як є)
+        c.execute("""
         CREATE TABLE IF NOT EXISTS military_tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
@@ -67,31 +68,61 @@ def init_db():
             amount REAL,
             issued_by TEXT,
             date TEXT
-        )''')
+        )""")
+        # бронювання транспорту
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS vehicle_rentals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vehicle_id TEXT NOT NULL,
+            plate TEXT NOT NULL,
+            model TEXT NOT NULL,
+            taken_by_id TEXT NOT NULL,
+            taken_by_name TEXT NOT NULL,
+            duration TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            taken_at TEXT NOT NULL,
+            returned_at TEXT
+        )""")
         conn.commit()
 
 init_db()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def user_has_any_role(member: discord.Member, allowed_names: list[str]) -> bool:
-    """Перевіряє, чи має користувач хоча б одну з дозволених ролей (за назвою)."""
+def user_has_any_role(member, allowed_names):
+    """Чи має користувач хоч одну з потрібних ролей (за назвою)."""
     if not member or not allowed_names:
         return False
-    member_role_names = {r.name for r in member.roles if r and r.name}
-    return any(name in member_role_names for name in allowed_names)
+    names = {r.name for r in member.roles if r and r.name}
+    return any(n in names for n in allowed_names)
+
+def is_vehicle_taken(vehicle_id: str) -> bool:
+    with sqlite3.connect("audit.db") as conn:
+        c = conn.cursor()
+        c.execute("SELECT 1 FROM vehicle_rentals WHERE vehicle_id=? AND returned_at IS NULL LIMIT 1", (vehicle_id,))
+        return c.fetchone() is not None
+
+def my_active_rentals(discord_user_id: str):
+    with sqlite3.connect("audit.db") as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT id, vehicle_id, plate, model, duration, reason, taken_at
+            FROM vehicle_rentals
+            WHERE taken_by_id=? AND returned_at IS NULL
+            ORDER BY taken_at DESC
+        """, (discord_user_id,))
+        return c.fetchall()
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("login.html")
 
-# /login з підтримкою next → після OAuth редіректимо куди треба (наприклад, /sai)
+# /login з підтримкою next
 @app.route("/login")
 def login():
     next_page = request.args.get("next", "/dashboard")
-    if not next_page.startswith("/"):
+    if not str(next_page).startswith("/"):
         next_page = "/dashboard"
-
     url = (
         "https://discord.com/api/oauth2/authorize?"
         f"client_id={CLIENT_ID}"
@@ -108,7 +139,7 @@ def callback():
     next_page = request.args.get("state", "/dashboard")
     if not code:
         return "❌ Помилка авторизації."
-    if not next_page.startswith("/"):
+    if not str(next_page).startswith("/"):
         next_page = "/dashboard"
 
     data = {
@@ -130,19 +161,18 @@ def callback():
         headers={"Authorization": f"Bearer {access_token}"}
     ).json()
 
-    guild_member_resp = requests.get(
+    gm = requests.get(
         f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
         headers={"Authorization": f"Bearer {access_token}"}
     )
-    if guild_member_resp.status_code != 200:
+    if gm.status_code != 200:
         return "❌ Ви не є учасником сервера."
 
-    roles = guild_member_resp.json().get("roles", [])
+    roles = gm.json().get("roles", [])
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     if not guild:
         return "❌ Бот не підключений до сервера або не має доступу."
 
-    # доступ у "кадровий аудит" за ALLOWED_ROLES
     for r_id in roles:
         role = discord.utils.get(guild.roles, id=int(r_id))
         if role and role.name in ALLOWED_ROLES:
@@ -155,7 +185,6 @@ def callback():
 def dashboard():
     if "user" not in session:
         return redirect("/")
-
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     if not guild:
         return "❌ Бот не бачить сервер."
@@ -239,10 +268,9 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ── SAI: звіт на підвищення (доступ ТІЛЬКИ для SAI_ALLOWED_ROLES) ────────────
+# ── SAI: звіт на підвищення (лише для SAI_ALLOWED_ROLES) ─────────────────────
 @app.route("/sai", methods=["GET", "POST"])
 def sai_report():
-    # якщо не авторизований — відправляємо на OAuth і повернемось сюди
     if "user" not in session:
         return redirect("/login?next=/sai")
 
@@ -287,18 +315,25 @@ def sai_report():
         return redirect("/sai")
 
     return render_template("sai_report.html")
+
+# ── VEHICLES: показати лише вільні, дозволити взяти/повернути ────────────────
 @app.route("/vehicles")
 def vehicles():
     if "user" not in session:
         return redirect("/login?next=/vehicles")
-    return render_template("vehicles.html", vehicles=VEHICLES)
+    # вільні картки
+    available = [v for v in VEHICLES if not is_vehicle_taken(v["id"])]
+    # мої активні
+    mine = my_active_rentals(session["user"]["id"])
+    return render_template("vehicles.html", vehicles=available, my_rentals=mine)
+
 @app.route("/vehicles/take", methods=["POST"])
 def vehicles_take():
     if "user" not in session:
         return redirect("/login?next=/vehicles")
 
     vehicle_id = request.form.get("vehicle_id", "").strip()
-    duration   = request.form.get("duration", "").strip()   # "2 години", "до 18:00", тощо
+    duration   = request.form.get("duration", "").strip()
     reason     = request.form.get("reason", "").strip()
 
     v = next((x for x in VEHICLES if x["id"] == vehicle_id), None)
@@ -306,16 +341,27 @@ def vehicles_take():
         return "❌ Невідомий транспорт.", 400
     if not duration or not reason:
         return "❌ Вкажіть тривалість і причину.", 400
+    if is_vehicle_taken(vehicle_id):
+        return "❌ Цей транспорт уже взяли.", 400
 
     user = session["user"]
-    executor_name = user.get("username", "Невідомо")
-    executor_id   = user.get("id")
+    now_str = datetime.now(ZoneInfo("Europe/Kyiv")).strftime("%Y-%m-%d %H:%M:%S")
 
+    # запис у БД
+    with sqlite3.connect("audit.db") as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO vehicle_rentals (vehicle_id, plate, model, taken_by_id, taken_by_name, duration, reason, taken_at, returned_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+        """, (v["id"], v["plate"], v["name"], user["id"], user.get("username","Unknown"), duration, reason, now_str))
+        conn.commit()
+
+    # Discord
     embed = discord.Embed(
         title="🚓 Видача транспорту",
         description=(
             "━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 **Хто взяв:** <@{executor_id}> (`{executor_name}`)\n"
+            f"👤 **Хто взяв:** <@{user['id']}> (`{user.get('username','Unknown')}`)\n"
             f"🪪 **Номера транспорту:** `{v['plate']}`\n"
             f"🚘 **Модель:** {v['name']}\n"
             f"⏳ **На час:** {duration}\n"
@@ -326,14 +372,55 @@ def vehicles_take():
         color=discord.Color.gold()
     )
     embed.set_footer(text="BCSD • Vehicle Request")
-
     ch = bot.get_channel(VEHICLE_LOG_CHANNEL_ID)
     if ch:
         bot.loop.create_task(ch.send(embed=embed))
 
-    # Повертаємося на список з коротким підтвердженням у query (можеш показати алерт на фронті)
     return redirect("/vehicles?ok=1")
 
+@app.route("/vehicles/return", methods=["POST"])
+def vehicles_return():
+    if "user" not in session:
+        return redirect("/login?next=/vehicles")
+
+    rental_id = request.form.get("rental_id")
+    if not rental_id:
+        return "❌ Не передано rental_id.", 400
+
+    with sqlite3.connect("audit.db") as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT id, vehicle_id, plate, model
+            FROM vehicle_rentals
+            WHERE id=? AND taken_by_id=? AND returned_at IS NULL
+        """, (rental_id, session["user"]["id"]))
+        row = c.fetchone()
+        if not row:
+            return "❌ Активний запис не знайдено.", 404
+
+        now_str = datetime.now(ZoneInfo("Europe/Kyiv")).strftime("%Y-%m-%d %H:%M:%S")
+        c.execute("UPDATE vehicle_rentals SET returned_at=? WHERE id=?", (now_str, rental_id))
+        conn.commit()
+
+    # повідомлення у Discord
+    embed = discord.Embed(
+        title="✅ Повернення транспорту",
+        description=(
+            "━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 **Хто повернув:** <@{session['user']['id']}>\n"
+            f"🪪 **Номера:** `{row[2]}`\n"
+            f"🚘 **Модель:** {row[3]}\n"
+            f"🕒 **Час:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y %H:%M}`\n"
+            "━━━━━━━━━━━━━━━━━━━"
+        ),
+        color=discord.Color.green()
+    )
+    embed.set_footer(text="BCSD • Vehicle Return")
+    ch = bot.get_channel(VEHICLE_LOG_CHANNEL_ID)
+    if ch:
+        bot.loop.create_task(ch.send(embed=embed))
+
+    return redirect("/vehicles?returned=1")
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 def run_flask():
