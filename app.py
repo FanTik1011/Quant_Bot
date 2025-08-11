@@ -278,9 +278,10 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ── SAI: (залишив, якщо потрібно) ────────────────────────────────────────────
+# ── SAI: звіт на підвищення (доступ ТІЛЬКИ для SAI_ALLOWED_ROLES) ────────────
 @app.route("/sai", methods=["GET", "POST"])
 def sai_report():
+    # якщо не авторизований — відправляємо на OAuth і повернемось сюди
     if "user" not in session:
         return redirect("/login?next=/sai")
 
@@ -325,6 +326,7 @@ def sai_report():
         return redirect("/sai")
 
     return render_template("sai_report.html")
+
 
 # ── VEHICLES: вільні картки + взяти/повернути ────────────────────────────────
 @app.route("/vehicles")
@@ -435,3 +437,15 @@ def run_flask():
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
     bot.run(BOT_TOKEN)
+
+
+
+
+
+
+
+
+
+
+
+
