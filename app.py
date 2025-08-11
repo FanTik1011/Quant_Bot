@@ -4,31 +4,41 @@ import sqlite3
 import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from urllib.parse import quote_plus
+
 from flask import Flask, render_template, request, redirect, session, send_file
 from dotenv import load_dotenv
+
 import discord
 from discord.ext import commands
 
+# ── Load .env ──────────────────────────────────────────────────────────────────
 load_dotenv()
 app = Flask(__name__, static_folder="static")
 app.secret_key = os.getenv("SECRET_KEY")
 
-BOT_TOKEN            = os.getenv("BOT_TOKEN")
-GUILD_ID             = int(os.getenv("GUILD_ID"))
-LOG_CHANNEL_ID       = int(os.getenv("LOG_CHANNEL_ID"))
-CLIENT_ID            = os.getenv("DISCORD_CLIENT_ID")
-CLIENT_SECRET        = os.getenv("DISCORD_CLIENT_SECRET")
-REDIRECT_URI         = os.getenv("DISCORD_REDIRECT_URI")
-ALLOWED_ROLES        = os.getenv("ALLOWED_ROLES").split(",")
+# ── ENV ────────────────────────────────────────────────────────────────────────
+BOT_TOKEN      = os.getenv("BOT_TOKEN")
+GUILD_ID       = int(os.getenv("GUILD_ID"))
+LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID"))
 
+CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID")
+CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+REDIRECT_URI  = os.getenv("DISCORD_REDIRECT_URI")
+
+ALLOWED_ROLES      = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
+SAI_ALLOWED_ROLES  = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
+SAI_LOG_CHANNEL_ID = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+
+# ── Discord bot ────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ── DB init (без змін у структурах) ───────────────────────────────────────────
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
-        # таблиця кадрового аудиту
         c.execute('''
         CREATE TABLE IF NOT EXISTS actions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +49,6 @@ def init_db():
             reason TEXT,
             date TEXT
         )''')
-        # таблиця військових квитків
         c.execute('''
         CREATE TABLE IF NOT EXISTS military_tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,28 +63,44 @@ def init_db():
 
 init_db()
 
-# ——— Кадровий аудит ———
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def user_has_any_role(member: discord.Member, allowed_names: list[str]) -> bool:
+    """Перевіряє, чи має користувач хоча б одну з дозволених ролей (за назвою)."""
+    if not member or not allowed_names:
+        return False
+    member_role_names = {r.name for r in member.roles if r and r.name}
+    return any(name in member_role_names for name in allowed_names)
 
+# ── Routes ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("login.html")
 
+# /login з підтримкою next → після OAuth редіректимо куди треба (наприклад, /sai)
 @app.route("/login")
 def login():
+    next_page = request.args.get("next", "/dashboard")
+    if not next_page.startswith("/"):
+        next_page = "/dashboard"
+
     url = (
-        f"https://discord.com/api/oauth2/authorize?"
+        "https://discord.com/api/oauth2/authorize?"
         f"client_id={CLIENT_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
+        f"&redirect_uri={quote_plus(REDIRECT_URI)}"
         f"&response_type=code"
         f"&scope=identify%20guilds.members.read"
+        f"&state={quote_plus(next_page)}"
     )
     return redirect(url)
 
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
+    next_page = request.args.get("state", "/dashboard")
     if not code:
         return "❌ Помилка авторизації."
+    if not next_page.startswith("/"):
+        next_page = "/dashboard"
 
     data = {
         "client_id": CLIENT_ID,
@@ -90,25 +115,30 @@ def callback():
         return f"❌ Помилка токену: {r.status_code} {r.text}"
 
     access_token = r.json()["access_token"]
+
     user_info = requests.get(
         "https://discord.com/api/users/@me",
         headers={"Authorization": f"Bearer {access_token}"}
     ).json()
 
-    guild_member = requests.get(
+    guild_member_resp = requests.get(
         f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
         headers={"Authorization": f"Bearer {access_token}"}
     )
-    if guild_member.status_code != 200:
+    if guild_member_resp.status_code != 200:
         return "❌ Ви не є учасником сервера."
 
-    roles = guild_member.json().get("roles", [])
+    roles = guild_member_resp.json().get("roles", [])
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    if not guild:
+        return "❌ Бот не підключений до сервера або не має доступу."
+
+    # доступ у "кадровий аудит" за ALLOWED_ROLES
     for r_id in roles:
         role = discord.utils.get(guild.roles, id=int(r_id))
         if role and role.name in ALLOWED_ROLES:
             session["user"] = user_info
-            return redirect("/dashboard")
+            return redirect(next_page)
 
     return "❌ У вас немає доступу до кадрового аудиту."
 
@@ -117,7 +147,9 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    guild   = discord.utils.get(bot.guilds, id=GUILD_ID)
+    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    if not guild:
+        return "❌ Бот не бачить сервер."
     members = [(m.display_name, m.id) for m in guild.members if not m.bot]
 
     if request.method == "POST":
@@ -136,14 +168,14 @@ def dashboard():
         embed = discord.Embed(
             title="📋 Кадровий аудит | BCSD",
             description=(
-                f"━━━━━━━━━━━━━━━━━━━\n"
+                "━━━━━━━━━━━━━━━━━━━\n"
                 f"👤 **Кого:** {mention} | `{full_name}`\n"
                 f"📌 **Дія:** `{action}`\n"
                 f"🎖️ **Роль:** `{new_role or '-'}`\n"
                 f"📝 **Підстава:** {reason}\n"
                 f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
                 f"✍️ **Хто заповнив:** <@{executor_id}>\n"
-                f"━━━━━━━━━━━━━━━━━━━"
+                "━━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.blue()
         )
@@ -156,8 +188,7 @@ def dashboard():
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("""
-                INSERT INTO actions
-                (executor, target, action, role, reason, date)
+                INSERT INTO actions (executor, target, action, role, reason, date)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (
                 executor,
@@ -184,7 +215,7 @@ def history():
     for r in rows:
         try:
             d = datetime.strptime(r[6], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
-        except:
+        except Exception:
             d = r[6]
         actions.append((r[0], r[1], r[2], r[3], r[4], r[5], d))
 
@@ -198,8 +229,59 @@ def download_db():
 def logout():
     session.clear()
     return redirect("/")
-# ——— Запуск ———
 
+# ── SAI: звіт на підвищення (доступ ТІЛЬКИ для SAI_ALLOWED_ROLES) ────────────
+@app.route("/sai", methods=["GET", "POST"])
+def sai_report():
+    # якщо не авторизований — відправляємо на OAuth і повернемось сюди
+    if "user" not in session:
+        return redirect("/login?next=/sai")
+
+    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    if not guild:
+        return "❌ Бот не бачить сервер."
+    member = discord.utils.get(guild.members, id=int(session["user"]["id"]))
+    if not user_has_any_role(member, SAI_ALLOWED_ROLES):
+        need = ", ".join(SAI_ALLOWED_ROLES)
+        return f"❌ У вас немає доступу до SAI (потрібна роль: {need})."
+
+    if request.method == "POST":
+        author_tag  = request.form.get("author_tag", "").strip()
+        rank_from   = request.form.get("rank_from", "").strip()
+        rank_to     = request.form.get("rank_to", "").strip()
+        work_report = request.form.get("work_report", "").strip()
+        proofs_text = request.form.get("proofs", "").strip()
+
+        if not author_tag or not rank_from or not rank_to or not work_report:
+            return "❌ Заповніть усі обов'язкові поля.", 400
+
+        author_id = session["user"]["id"]
+
+        embed = discord.Embed(
+            title="🆙 Звіт на підвищення | SAI",
+            description=(
+                "━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 **Тег:** {author_tag}\n"
+                f"🎖️ **Ранг:** {rank_from} → {rank_to}\n"
+                f"📝 **Звіт:** {work_report}\n"
+                f"📎 **Докази:** {proofs_text if proofs_text else '–'}\n"
+                f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
+                f"✍️ **Хто подав:** <@{author_id}>\n"
+                "━━━━━━━━━━━━━━━━━━━"
+            ),
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="BCSD • SAI")
+
+        ch = bot.get_channel(SAI_LOG_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
+
+        return redirect("/sai")
+
+    return render_template("sai_report.html")
+
+# ── Run ───────────────────────────────────────────────────────────────────────
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
