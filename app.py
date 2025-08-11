@@ -147,7 +147,7 @@ def dashboard():
             ),
             color=discord.Color.blue()
         )
-        embed.set_footer(text="National Guard • Кадровий аудит")
+        embed.set_footer(text="BCSD • Кадровий аудит")
 
         ch = bot.get_channel(LOG_CHANNEL_ID)
         if ch:
