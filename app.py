@@ -301,7 +301,7 @@ def sai_report():
 
         if not author_tag or not rank_from or not rank_to or not work_report:
             return "❌ Заповніть усі обов'язкові поля.", 400
-
+        
         author_id = session["user"]["id"]
 
         embed = discord.Embed(
@@ -393,7 +393,8 @@ def vehicles_return():
 
     rental_id = request.form.get("rental_id")
     if not rental_id:
-        return "❌ Не передано rental_id.", 400
+        # немає ід — просто назад на список
+        return redirect("/vehicles?err=no_id")
 
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
@@ -403,8 +404,10 @@ def vehicles_return():
             WHERE id=? AND taken_by_id=? AND returned_at IS NULL
         """, (rental_id, session["user"]["id"]))
         row = c.fetchone()
+
         if not row:
-            return "❌ Активний запис не знайдено.", 404
+            # запис не активний або не ваш — повертаємося без 404, кнопка лишається
+            return redirect("/vehicles?err=not_found")
 
         now_str = datetime.now(ZoneInfo("Europe/Kyiv")).strftime("%Y-%m-%d %H:%M:%S")
         c.execute("UPDATE vehicle_rentals SET returned_at=? WHERE id=?", (now_str, rental_id))
@@ -428,6 +431,7 @@ def vehicles_return():
         bot.loop.create_task(ch.send(embed=embed))
 
     return redirect("/vehicles?returned=1")
+
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 def run_flask():

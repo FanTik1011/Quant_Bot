@@ -1,143 +1,140 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8" />
   <title>Транспорт | BCSD</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  />
   <style>
-    body{
-      background: url("/static/bg.jpg") no-repeat center center fixed;
-      background-size: cover;
-      min-height: 100vh;
-      color: #fff;
-      padding-top: 64px;
-    }
-    .navbar{ background: rgba(0,0,0,.85); }
-    .wrap{ backdrop-filter: blur(2px); }
-    .card{
-      background: rgba(30,30,47,.85);
-      border: 0;
-      color: #fff;
-      border-radius: 1rem;
-      overflow: hidden;
-      box-shadow: 0 0 25px rgba(0,0,0,.5);
-    }
-    .card img{ height: 180px; object-fit: cover; }
-    .btn-take{ background:#43B581; border:0; }
-    .btn-back{ background:#6c757d; border:0; }
+    body{background:url("/static/bg.jpg") center/cover fixed no-repeat;color:#fff}
+    .card{background:rgba(0,0,0,.75);border-radius:16px;backdrop-filter:blur(4px)}
+    .vehicle-card img{width:100%;height:160px;object-fit:cover;border-radius:12px}
+    .muted{opacity:.85}
+    .badge-plate{background:#ffc107;color:#000}
+    .sticky-topbar{position:sticky;top:0;z-index:9;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
   </style>
 </head>
 <body>
-
-<nav class="navbar fixed-top navbar-dark px-3">
-  <span class="navbar-brand">🚓 BCSD Транспорт</span>
-  <div class="d-flex gap-2">
-    <a class="btn btn-danger" href="/logout">Вийти</a>
-  </div>
-</nav>
-
-<div class="container py-4 wrap">
-
-  {% if request.args.get('ok') %}
-    <div class="alert alert-success">✅ Запит відправлено у Discord. Картка авто тимчасово недоступна.</div>
-  {% endif %}
-  {% if request.args.get('returned') %}
-    <div class="alert alert-info">ℹ️ Транспорт повернуто. Дякуємо!</div>
-  {% endif %}
-
-  {% if my_rentals and my_rentals|length > 0 %}
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="mb-3">Мій активний транспорт</h5>
-        {% for r in my_rentals %}
-          <form class="row align-items-center g-2" method="post" action="/vehicles/return">
-            <input type="hidden" name="rental_id" value="{{ r[0] }}">
-            <div class="col-md-5"><strong>{{ r[3] }}</strong></div>
-            <div class="col-md-3">Номера: <span class="badge bg-light text-dark">{{ r[2] }}</span></div>
-            <div class="col-md-2">Взяв: {{ r[6] }}</div>
-            <div class="col-md-2 text-end">
-              <button class="btn btn-warning w-100" type="submit">Повернути</button>
-            </div>
-          </form>
-          {% if not loop.last %}<hr class="border-secondary my-3">{% endif %}
-        {% endfor %}
+  <div class="sticky-topbar">
+    <div class="container py-3 d-flex justify-content-between align-items-center">
+      <h2 class="m-0">🚓 Транспорт — BCSD</h2>
+      <div class="btn-group">
+        <a href="/dashboard" class="btn btn-outline-light">Dashboard</a>
+        <a href="/history" class="btn btn-outline-warning">Історія</a>
+        <a href="/logout" class="btn btn-outline-danger">Вийти</a>
       </div>
     </div>
-  {% endif %}
+  </div>
 
-  <div class="row g-4">
-    {% for v in vehicles %}
-    <div class="col-sm-6 col-lg-4">
-      <div class="card h-100">
-        <img src="{{ v.img }}" alt="{{ v.name }}">
-        <div class="card-body d-flex flex-column">
-          <h5 class="card-title">{{ v.name }}</h5>
-          <p class="mb-2">Номера: <span class="badge bg-light text-dark">{{ v.plate }}</span></p>
-          <div class="mt-auto">
-            <button
-              class="btn btn-take w-100"
-              data-bs-toggle="modal"
-              data-bs-target="#takeModal"
-              data-vid="{{ v.id }}"
-              data-name="{{ v.name }}"
-              data-plate="{{ v.plate }}"
-            >Взяти цей транспорт</button>
+  <div class="container py-3">
+
+    {# ---- АЛЕРТИ СТАТУСУ ---- #}
+    {% set ok = request.args.get('ok') %}
+    {% set returned = request.args.get('returned') %}
+    {% set err = request.args.get('err') %}
+
+    {% if ok %}
+      <div class="alert alert-success border-0 shadow-sm">✅ Транспорт видано.</div>
+    {% endif %}
+    {% if returned %}
+      <div class="alert alert-success border-0 shadow-sm">✅ Транспорт повернено.</div>
+    {% endif %}
+    {% if err == 'no_id' %}
+      <div class="alert alert-warning border-0 shadow-sm">⚠️ Не передано ідентифікатор бронювання.</div>
+    {% elif err == 'not_found' %}
+      <div class="alert alert-warning border-0 shadow-sm">⚠️ Активний запис не знайдено або вже закритий.</div>
+    {% elif err %}
+      <div class="alert alert-danger border-0 shadow-sm">❌ Помилка: {{ err }}</div>
+    {% endif %}
+
+    <!-- Доступні авто -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h4 class="m-0">Доступні зараз</h4>
+      <small class="text-white-50">Показуються лише авто, які ніхто не тримає</small>
+    </div>
+
+    <div class="row g-3">
+      {% for v in vehicles %}
+        <div class="col-md-4">
+          <div class="card p-3 vehicle-card h-100 shadow-sm">
+            <img src="{{ v.img }}" alt="{{ v.name }}" />
+            <div class="mt-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <strong>{{ v.name }}</strong>
+                <span class="badge badge-plate">{{ v.plate }}</span>
+              </div>
+
+              <form method="post" action="/vehicles/take" class="mt-3">
+                <input type="hidden" name="vehicle_id" value="{{ v.id }}" />
+                <div class="mb-2">
+                  <input
+                    name="duration"
+                    class="form-control"
+                    placeholder="Тривалість (напр. 2 год.)"
+                    required
+                  />
+                </div>
+                <div class="mb-2">
+                  <input
+                    name="reason"
+                    class="form-control"
+                    placeholder="Причина"
+                    required
+                  />
+                </div>
+                <button class="btn btn-warning w-100">Взяти</button>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      {% else %}
+        <div class="col-12">
+          <div class="card p-4 text-center">
+            <div class="h5 m-0">Немає доступного транспорту.</div>
+          </div>
+        </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-    {% if vehicles|length == 0 %}
-      <div class="text-center text-muted">Наразі всі авто зайняті.</div>
-    {% endif %}
-  </div>
-</div>
 
-<!-- Modal -->
-<div class="modal fade" id="takeModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form class="modal-content bg-dark text-white" method="post" action="/vehicles/take">
-      <div class="modal-header">
-        <h5 class="modal-title">Взяти транспорт</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрити"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" name="vehicle_id" id="v-id">
-        <div class="mb-2">
-          <label class="form-label">Транспорт</label>
-          <input type="text" id="v-name" class="form-control" disabled>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Номера</label>
-          <input type="text" id="v-plate" class="form-control" disabled>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">На який час</label>
-          <input name="duration" class="form-control" placeholder="напр. 2 години / до 18:00" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Причина</label>
-          <textarea name="reason" class="form-control" rows="3" placeholder="Коротко по суті" required></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Скасувати</button>
-        <button class="btn btn-success" type="submit">Підтвердити</button>
-      </div>
-    </form>
-  </div>
-</div>
+    <hr class="border-secondary my-4" />
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  const takeModal = document.getElementById('takeModal');
-  takeModal.addEventListener('show.bs.modal', e => {
-    const btn = e.relatedTarget;
-    document.getElementById('v-id').value    = btn.dataset.vid;
-    document.getElementById('v-name').value  = btn.dataset.name;
-    document.getElementById('v-plate').value = btn.dataset.plate;
-  });
-</script>
+    <!-- Мої активні бронювання -->
+    <h4 class="mb-3">Мої активні бронювання</h4>
+    <div class="row g-3">
+      {% for r in my_rentals %}
+        {# r: (id, vehicle_id, plate, model, duration, reason, taken_at) #}
+        <div class="col-md-6">
+          <div class="card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>{{ r[3] }}</strong>
+                <span class="badge badge-plate ms-2">{{ r[2] }}</span>
+              </div>
+              <span class="muted">{{ r[6] }}</span>
+            </div>
+            <div class="muted mt-2">⏳ Тривалість: {{ r[4] }}</div>
+            <div class="muted">📝 Причина: {{ r[5] }}</div>
+
+            <form method="post" action="/vehicles/return" class="mt-3">
+              <input type="hidden" name="rental_id" value="{{ r[0] }}" />
+              <button class="btn btn-success">Повернути</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="col-12">
+          <div class="card p-4 text-center">
+            <div class="h6 m-0 text-white-50">Активних бронювань немає.</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
