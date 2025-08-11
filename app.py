@@ -173,17 +173,11 @@ def dashboard():
 
     return render_template("dashboard.html", members=members)
 
-@app.route("/history_data")
-def history_data():
-    offset = int(request.args.get("offset", 0))
-    limit = 50  # скільки записів вантажити за раз
-
+@app.route("/history")
+def history():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
-        c.execute(
-            "SELECT * FROM actions ORDER BY date DESC LIMIT ? OFFSET ?",
-            (limit, offset)
-        )
+        c.execute("SELECT * FROM actions ORDER BY date DESC")
         rows = c.fetchall()
 
     actions = []
@@ -192,17 +186,9 @@ def history_data():
             d = datetime.strptime(r[6], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
         except:
             d = r[6]
-        actions.append({
-            "executor": r[1],
-            "target": r[2],
-            "action": r[3],
-            "role": r[4],
-            "reason": r[5],
-            "date": d
-        })
+        actions.append((r[0], r[1], r[2], r[3], r[4], r[5], d))
 
-    return actions  # Flask автоматично зробить JSON
-
+    return render_template("history.html", actions=actions)
 
 @app.route("/download_db")
 def download_db():

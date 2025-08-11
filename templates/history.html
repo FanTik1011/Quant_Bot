@@ -32,9 +32,10 @@
     <div class="mb-3 d-flex justify-content-between">
         <a href="/dashboard" class="btn btn-outline-light">← Назад до Dashboard</a>
         <a href="/download_db" class="btn btn-warning">📥 Завантажити audit.db</a>
+
     </div>
 
-    <table class="table table-bordered table-striped" id="historyTable">
+    <table class="table table-bordered table-striped">
         <thead class="table-dark">
         <tr>
             <th>Виконавець</th>
@@ -45,48 +46,19 @@
             <th>Дата</th>
         </tr>
         </thead>
-        <tbody id="historyBody">
+        <tbody>
+        {% for row in actions %}
+            <tr>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+                <td>{{ row[6] }}</td>
+            </tr>
+        {% endfor %}
         </tbody>
     </table>
 </div>
-
-<script>
-let offset = 0;
-let loading = false;
-const limit = 50;
-
-async function loadMoreHistory() {
-    if (loading) return;
-    loading = true;
-
-    const res = await fetch(`/history_data?offset=${offset}`);
-    const data = await res.json();
-
-    const tbody = document.getElementById("historyBody");
-    data.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${row.executor}</td>
-            <td>${row.target}</td>
-            <td>${row.action}</td>
-            <td>${row.role}</td>
-            <td>${row.reason}</td>
-            <td>${row.date}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    offset += limit;
-    loading = false;
-}
-
-window.addEventListener("scroll", () => {
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
-        loadMoreHistory();
-    }
-});
-
-loadMoreHistory();
-</script>
 </body>
 </html>
