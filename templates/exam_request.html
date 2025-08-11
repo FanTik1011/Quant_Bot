@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Запит на іспит / присягу / лекцію | BCSD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: url("/static/bg.jpg") center/cover fixed no-repeat;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .card {
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 25px rgba(0,0,0,0.6);
+      transition: 0.3s;
+    }
+    .card:hover {
+      transform: scale(1.01);
+    }
+    h1 {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    label {
+      font-weight: 600;
+    }
+    select, input, button {
+      border-radius: 12px !important;
+    }
+    .btn-send {
+      background: linear-gradient(90deg, #ffbb00, #ff8800);
+      color: #000;
+      font-weight: 600;
+      transition: 0.3s;
+      border: none;
+    }
+    .btn-send:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255, 187, 0, 0.7);
+    }
+    .section-header {
+      background: rgba(255, 187, 0, 0.15);
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .logout-btn {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: #dc3545;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 500;
+      transition: 0.3s;
+    }
+    .logout-btn:hover {
+      background: #b02a37;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+<div class="container py-5">
+  <div class="section-header">
+    <h1>📨 Запит на іспит / присягу / лекцію</h1>
+    <p class="mb-0">BCSD Department — Офіційна форма</p>
+    {% if session.get('user') %}
+      <a href="/logout" class="logout-btn">Вийти</a>
+    {% endif %}
+  </div>
+
+  {% if request.args.get('ok') %}
+    <div class="alert alert-success border-0 shadow-sm">
+      ✅ Запит успішно надіслано. Очікуйте відповідь у Discord.
+    </div>
+  {% endif %}
+
+  <div class="card p-4 mx-auto" style="max-width: 500px;">
+    <form method="post">
+      <div class="mb-3">
+        <label class="form-label">📌 Оберіть дію</label>
+        <select name="action_type" class="form-select" required>
+          <option value="" selected disabled>— Оберіть —</option>
+          <option>Присяга</option>
+          <option>Іспит</option>
+          <option>Лекція</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">🧑‍✈️ Хто подає</label>
+        <input class="form-control" 
+               value="{{ session['user']['username'] if session.get('user') else '' }}" 
+               disabled>
+        <div class="form-text text-light">Це поле заповнюється автоматично.</div>
+      </div>
+
+      <button class="btn btn-send w-100 py-2">
+        🚀 Надіслати запит
+      </button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

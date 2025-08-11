@@ -25,6 +25,8 @@ LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID"))
 CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 REDIRECT_URI  = os.getenv("DISCORD_REDIRECT_URI")
+EXAM_LOG_CHANNEL_ID = int(os.getenv("EXAM_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+
 
 ALLOWED_ROLES       = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
 SAI_ALLOWED_ROLES   = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
@@ -97,6 +99,15 @@ def init_db():
             returned_at TEXT
         )""")
         conn.commit()
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS exam_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            author_name TEXT NOT NULL,
+            author_id   TEXT NOT NULL,
+            action_type TEXT NOT NULL,  -- Присяга / Іспит / Лекція
+            submitted_at TEXT NOT NULL  -- YYYY-MM-DD HH:MM:SS (Europe/Kyiv)
+        )""")
+
 
 init_db()
 
@@ -433,6 +444,58 @@ def vehicles_return():
 
     return redirect("/vehicles?returned=1")
 
+@app.route("/exam_request", methods=["GET", "POST"])
+def exam_request():
+    # авторизація як і скрізь: якщо не залогінений — відправляємо через Discord OAuth назад сюди
+    if "user" not in session:
+        return redirect("/login?next=/exam_request")
+
+    if request.method == "POST":
+        # 1) хто подає — беремо із сесії
+        author_id = session["user"]["id"]
+        author_name = session["user"].get("username", "Unknown")
+
+        # 2) дія (валідуємо)
+        action_type = (request.form.get("action_type") or "").strip()
+        allowed = {"Присяга", "Іспит", "Лекція"}
+        if action_type not in allowed:
+            return "❌ Оберіть дію: Присяга / Іспит / Лекція.", 400
+
+        # 3) дата й час подачі (Kyiv)
+        now = datetime.now(ZoneInfo("Europe/Kyiv"))
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        # запис у БД
+        with sqlite3.connect("audit.db") as conn:
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO exam_requests (author_name, author_id, action_type, submitted_at)
+                VALUES (?, ?, ?, ?)
+            """, (author_name, author_id, action_type, now_str))
+            conn.commit()
+
+        # Embed у Discord
+        embed = discord.Embed(
+            title="📨 Запит на іспит / присягу / лекцію",
+            description=(
+                "━━━━━━━━━━━━━━━━━━━\n"
+                f"🧑‍✈️ **Хто подав:** <@{author_id}> (`{author_name}`)\n"
+                f"🏷️ **Дія:** {action_type}\n"
+                f"🕒 **Подано:** `{now:%d.%m.%Y %H:%M}` (Europe/Kyiv)\n"
+                "━━━━━━━━━━━━━━━━━━━"
+            ),
+            color=discord.Color.purple()
+        )
+        embed.set_footer(text="BCSD • Exam/Oath/Lecture Request")
+
+        ch = bot.get_channel(EXAM_LOG_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
+
+        return redirect("/exam_request?ok=1")
+
+    # GET — рендеримо форму
+    return render_template("exam_request.html")
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 def run_flask():
