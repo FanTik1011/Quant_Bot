@@ -1,156 +1,114 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <title>Запит: Іспит / Присяга / Лекція | BCSD</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <style>
-    :root{
-      --glass: rgba(20, 22, 35, .62);
-      --glass-strong: rgba(20,22,35,.82);
-      --border: rgba(255,255,255,.14);
-      --soft: rgba(255,255,255,.85);
-      --accent:#ffc107;
-      --pill:#1f2937;
-      --pill-active:#2dd4bf;
-      --btn:#ffb300;
-      --btn2:#ff8f00;
-    }
-    body{
-      background:
-        radial-gradient(1200px 600px at 120% -10%, rgba(88,101,242,.20), transparent 55%),
-        radial-gradient(1000px 800px at -20% 120%, rgba(14,165,233,.18), transparent 60%),
-        url("/static/bg.jpg") center/cover fixed no-repeat;
-      min-height:100vh; color:#fff; font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      display:flex; align-items:center; justify-content:center; padding:28px;
-    }
-    .wrap{width:100%; max-width:980px;}
-    .head{
-      position:relative; margin-bottom:18px; text-align:center;
-      background: linear-gradient(180deg, rgba(255,193,7,.12), rgba(255,193,7,0));
-      border-radius:16px; padding:16px 14px;
-    }
-    .head h1{margin:0; font-weight:900; letter-spacing:.3px; text-shadow:0 8px 28px rgba(0,0,0,.55)}
-    .head p{margin:6px 0 0; color:var(--soft)}
-    .logout{
-      position:absolute; right:14px; top:14px;
-      background:#dc3545; border:1px solid rgba(255,255,255,.15); color:#fff;
-      padding:8px 14px; border-radius:12px; text-decoration:none; transition:.25s
-    }
-    .logout:hover{background:#b02a37; transform:translateY(-1px)}
-    .card{
-      background:var(--glass);
-      border:1px solid var(--border);
-      border-radius:22px; padding:22px; backdrop-filter: blur(10px);
-      box-shadow:0 18px 48px rgba(0,0,0,.55); transition:.3s;
-    }
-    .card:hover{background:var(--glass-strong)}
-    .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:18px}
-    @media (max-width: 900px){ .grid{grid-template-columns:1fr} }
+    <meta charset="UTF-8">
+    <title>📜 Запит на іспит / присягу / лекцію | BCSD</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: url("/static/bg.jpg") no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
 
-    .label{font-weight:700; margin-bottom:8px}
-    .pills{display:flex; gap:10px; flex-wrap:wrap}
-    .pill{
-      display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
-      background:var(--pill); border:1px solid var(--border); padding:10px 14px; border-radius:999px;
-      transition:.2s; font-weight:600; color:#e5e7eb;
-    }
-    .pill:hover{transform:translateY(-1px)}
-    .pill input{display:none}
-    .pill.active{background:rgba(45,212,191,.18); border-color:rgba(45,212,191,.5); color:#d1fae5}
+        .card {
+            background-color: rgba(20, 20, 35, 0.85);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+        }
 
-    .muted{color:var(--soft)}
-    .field{background:rgba(255,255,255,.06); border:1px solid var(--border); color:#fff}
-    .field:disabled{opacity:.9}
-    .hint{font-size:.9rem; opacity:.9}
+        h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            color: #f8f9fa;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+        }
 
-    .send{
-      background:linear-gradient(90deg, var(--btn), var(--btn2)); color:#000; border:none;
-      border-radius:14px; padding:12px 16px; font-weight:800; width:100%; transition:.25s
-    }
-    .send:hover{transform:translateY(-1px) scale(1.01); box-shadow:0 0 18px rgba(255,193,7,.6)}
+        label {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f8f9fa;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
 
-    .side{
-      background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:18px; padding:16px;
-    }
-    .line{border-top:1px dashed rgba(255,255,255,.18); margin:12px 0}
-    .time{font-variant-numeric: tabular-nums}
-  </style>
+        small {
+            display: block;
+            font-size: .9rem;
+            color: #e2e8f0;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.7);
+            margin-bottom: 0.5rem;
+        }
+
+        select, input {
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        select option {
+            background-color: #141423;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            transition: 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            transform: scale(1.03);
+        }
+
+        .btn-logout {
+            background-color: #dc3545;
+            border: none;
+            width: 100%;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background-color: #b02a37;
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="head">
-      <h1>📨 Запит: Іспит / Присяга / Лекція</h1>
-      <p>BCSD Department — офіційна форма подачі</p>
-      {% if session.get('user') %}
-        <a class="logout" href="/logout">Вийти</a>
-      {% endif %}
-    </div>
+    <div class="card">
+        <h2>📜 Запит на іспит / присягу / лекцію</h2>
 
-    {% if request.args.get('ok') %}
-      <div class="alert alert-success border-0 shadow-sm">
-        ✅ Запит успішно надіслано. Відповідь отримаєш у Discord.
-      </div>
-    {% endif %}
-
-    <div class="grid">
-      <!-- Форма -->
-      <div class="card">
-        <form method="post" id="reqForm">
-          <div class="mb-3">
-            <div class="label">📌 Оберіть дію</div>
-            <div class="pills" id="pillGroup">
-              <label class="pill"><input type="radio" name="action_type" value="Присяга" required>🫡 Присяга</label>
-              <label class="pill"><input type="radio" name="action_type" value="Іспит" required>📝 Іспит</label>
-              <label class="pill"><input type="radio" name="action_type" value="Лекція" required>🎓 Лекція</label>
+        <form method="POST">
+            <div class="mb-3">
+                <label>Хто подає</label>
+                <small>Ваш нікнейм буде заповнено автоматично</small>
+                <input type="text" class="form-control" value="{{ session['user']['username'] }}" readonly>
             </div>
-          </div>
 
-          <div class="mb-3">
-            <div class="label">🧑‍✈️ Хто подає</div>
-            <input class="form-control field" value="{{ session['user']['username'] if session.get('user') else '' }}" disabled>
-            <div class="hint mt-1">Поле заповнюється автоматично (нік та ID беруться з Discord).</div>
-          </div>
+            <div class="mb-3">
+                <label>Оберіть дію</label>
+                <small>Виберіть одну з доступних опцій</small>
+                <select class="form-select" name="action" required>
+                    <option value="Присяга">Присяга</option>
+                    <option value="Іспит">Іспит</option>
+                    <option value="Лекція">Лекція</option>
+                </select>
+            </div>
 
-          <button class="send">🚀 Надіслати запит</button>
+            <button type="submit" class="btn btn-primary w-100">📤 Подати запит</button>
         </form>
-      </div>
 
-      <!-- Інфо/попередній перегляд -->
-      <div class="side">
-        <div class="d-flex align-items-center justify-content-between">
-          <strong>ℹ️ Інфо</strong>
-          <span class="badge text-bg-warning text-dark">BCSD</span>
-        </div>
-        <div class="line"></div>
-        <div class="mb-2">⏱️ Час подачі (локально): <span id="nowLocal" class="time"></span></div>
-        <div class="mb-2">🕒 Логується (Kyiv): сервер автоматично поставить точний час.</div>
-        <div class="mb-2">📣 Після відправки: бот надішле Embed у визначений канал.</div>
-        <div class="line"></div>
-        <div class="hint">Порада: подавай за кілька хвилин до бажаного часу — щоб модератори встигли відреагувати.</div>
-      </div>
+        <a href="/logout" class="btn btn-logout">🚪 Вийти</a>
     </div>
-  </div>
-
-  <script>
-    // Активний стан для "пилюль"
-    const pills = document.querySelectorAll('.pill');
-    pills.forEach(p => {
-      p.addEventListener('click', () => {
-        pills.forEach(x => x.classList.remove('active'));
-        p.classList.add('active');
-      });
-    });
-
-    // Живий локальний час (для відчуття UX; сервер все одно пише Kyiv-час)
-    const el = document.getElementById('nowLocal');
-    function tick(){
-      const d = new Date();
-      const pad = n => String(n).padStart(2,'0');
-      el.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} • ${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
-    }
-    tick(); setInterval(tick, 1000);
-  </script>
 </body>
 </html>
