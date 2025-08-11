@@ -29,6 +29,15 @@ REDIRECT_URI  = os.getenv("DISCORD_REDIRECT_URI")
 ALLOWED_ROLES      = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
 SAI_ALLOWED_ROLES  = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
 SAI_LOG_CHANNEL_ID = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+
+# Список транспорту для карток (приклад; допиши свої)
+VEHICLES = [
+    {"id": "car_01", "name": "Dodge Charger Sheriff", "plate": "BCSD-001", "img": "/static/vehicles/car2.jpg"},
+    {"id": "car_02", "name": "Ford Explorer Sheriff", "plate": "BCSD-002", "img": "/static/vehicles/car1.jpg"},
+    {"id": "car_03", "name": "Motorcycle Sheriff",    "plate": "BCSD-003", "img": "/static/vehicles/car1.jpg"},
+]
+
 
 # ── Discord bot ────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -278,6 +287,52 @@ def sai_report():
         return redirect("/sai")
 
     return render_template("sai_report.html")
+@app.route("/vehicles")
+def vehicles():
+    if "user" not in session:
+        return redirect("/login?next=/vehicles")
+    return render_template("vehicles.html", vehicles=VEHICLES)
+@app.route("/vehicles/take", methods=["POST"])
+def vehicles_take():
+    if "user" not in session:
+        return redirect("/login?next=/vehicles")
+
+    vehicle_id = request.form.get("vehicle_id", "").strip()
+    duration   = request.form.get("duration", "").strip()   # "2 години", "до 18:00", тощо
+    reason     = request.form.get("reason", "").strip()
+
+    v = next((x for x in VEHICLES if x["id"] == vehicle_id), None)
+    if not v:
+        return "❌ Невідомий транспорт.", 400
+    if not duration or not reason:
+        return "❌ Вкажіть тривалість і причину.", 400
+
+    user = session["user"]
+    executor_name = user.get("username", "Невідомо")
+    executor_id   = user.get("id")
+
+    embed = discord.Embed(
+        title="🚓 Видача транспорту",
+        description=(
+            "━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 **Хто взяв:** <@{executor_id}> (`{executor_name}`)\n"
+            f"🪪 **Номера транспорту:** `{v['plate']}`\n"
+            f"🚘 **Модель:** {v['name']}\n"
+            f"⏳ **На час:** {duration}\n"
+            f"📝 **Причина:** {reason}\n"
+            f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y %H:%M}`\n"
+            "━━━━━━━━━━━━━━━━━━━"
+        ),
+        color=discord.Color.gold()
+    )
+    embed.set_footer(text="BCSD • Vehicle Request")
+
+    ch = bot.get_channel(VEHICLE_LOG_CHANNEL_ID)
+    if ch:
+        bot.loop.create_task(ch.send(embed=embed))
+
+    # Повертаємося на список з коротким підтвердженням у query (можеш показати алерт на фронті)
+    return redirect("/vehicles?ok=1")
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
