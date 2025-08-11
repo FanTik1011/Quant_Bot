@@ -1,109 +1,144 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <title>Транспорт BCSD</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: url("/static/bg.jpg") no-repeat center center fixed;
-            background-size: cover;
-            color: white;
-            padding-top: 70px;
-        }
-        .card {
-            background-color: rgba(30, 30, 47, 0.85);
-            color: white;
-            border: none;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-        }
-        .btn-take {
-            background-color: #ffc107;
-            border: none;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .btn-take:hover {
-            background-color: #e0a800;
-            transform: scale(1.03);
-        }
-        .navbar {
-            background-color: rgba(0,0,0,0.8);
-        }
-        .modal-content {
-            background-color: rgba(30, 30, 47, 0.95);
-            color: white;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Транспорт | BCSD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{
+      background: url("/static/bg.jpg") no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      color: #fff;
+      padding-top: 64px;
+    }
+    .navbar{ background: rgba(0,0,0,.85); }
+    .wrap{ backdrop-filter: blur(2px); }
+    .card{
+      background: rgba(30,30,47,.85);
+      border: 0;
+      color: #fff;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0,0,0,.5);
+    }
+    .card img{ height: 180px; object-fit: cover; }
+    .btn-take{ background:#43B581; border:0; }
+    .btn-back{ background:#6c757d; border:0; }
+  </style>
 </head>
 <body>
 
 <nav class="navbar fixed-top navbar-dark px-3">
-    <a class="navbar-brand" href="#">🚓 BCSD Транспорт</a>
-    <a href="/logout" class="btn btn-danger">Вийти</a>
+  <span class="navbar-brand">🚓 BCSD Транспорт</span>
+  <div class="d-flex gap-2">
+    <a class="btn btn-back" href="/dashboard">← Назад</a>
+    <a class="btn btn-danger" href="/logout">Вийти</a>
+  </div>
 </nav>
 
-<div class="container">
-    <div class="row g-4">
-        {% for v in vehicles %}
-        <div class="col-md-4">
-            <div class="card h-100">
-                <img src="{{ v.img }}" class="card-img-top" alt="{{ v.name }}">
-                <div class="card-body">
-                    <h5 class="card-title">{{ v.name }}</h5>
-                    <p class="card-text"><strong>Номера:</strong> {{ v.plate }}</p>
-                    <button class="btn btn-take w-100" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#takeModal" 
-                            data-id="{{ v.id }}" 
-                            data-name="{{ v.name }}" 
-                            data-plate="{{ v.plate }}">
-                        🚗 Взяти
-                    </button>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
+<div class="container py-4 wrap">
 
-<!-- Modal -->
-<div class="modal fade" id="takeModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST" action="/vehicles/take">
-        <div class="modal-header">
-          <h5 class="modal-title">Взяти транспорт</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="vehicle_id" id="vehicle_id">
-          <div class="mb-3">
-            <label class="form-label">На який час</label>
-            <input type="text" name="duration" class="form-control" placeholder="Напр. 2 години" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Причина</label>
-            <textarea name="reason" class="form-control" rows="3" required></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
-          <button type="submit" class="btn btn-warning">Підтвердити</button>
-        </div>
-      </form>
+  {% if request.args.get('ok') %}
+    <div class="alert alert-success">✅ Запит відправлено у Discord. Картка авто тимчасово недоступна.</div>
+  {% endif %}
+  {% if request.args.get('returned') %}
+    <div class="alert alert-info">ℹ️ Транспорт повернуто. Дякуємо!</div>
+  {% endif %}
+
+  {% if my_rentals and my_rentals|length > 0 %}
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Мій активний транспорт</h5>
+        {% for r in my_rentals %}
+          <form class="row align-items-center g-2" method="post" action="/vehicles/return">
+            <input type="hidden" name="rental_id" value="{{ r[0] }}">
+            <div class="col-md-5"><strong>{{ r[3] }}</strong></div>
+            <div class="col-md-3">Номера: <span class="badge bg-light text-dark">{{ r[2] }}</span></div>
+            <div class="col-md-2">Взяв: {{ r[6] }}</div>
+            <div class="col-md-2 text-end">
+              <button class="btn btn-warning w-100" type="submit">Повернути</button>
+            </div>
+          </form>
+          {% if not loop.last %}<hr class="border-secondary my-3">{% endif %}
+        {% endfor %}
+      </div>
     </div>
+  {% endif %}
+
+  <div class="row g-4">
+    {% for v in vehicles %}
+    <div class="col-sm-6 col-lg-4">
+      <div class="card h-100">
+        <img src="{{ v.img }}" alt="{{ v.name }}">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ v.name }}</h5>
+          <p class="mb-2">Номера: <span class="badge bg-light text-dark">{{ v.plate }}</span></p>
+          <div class="mt-auto">
+            <button
+              class="btn btn-take w-100"
+              data-bs-toggle="modal"
+              data-bs-target="#takeModal"
+              data-vid="{{ v.id }}"
+              data-name="{{ v.name }}"
+              data-plate="{{ v.plate }}"
+            >Взяти цей транспорт</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% if vehicles|length == 0 %}
+      <div class="text-center text-muted">Наразі всі авто зайняті.</div>
+    {% endif %}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-const takeModal = document.getElementById('takeModal');
-takeModal.addEventListener('show.bs.modal', function (event) {
-    const button = event.relatedTarget;
-    document.getElementById('vehicle_id').value = button.getAttribute('data-id');
-});
-</script>
+<!-- Modal -->
+<div class="modal fade" id="takeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content bg-dark text-white" method="post" action="/vehicles/take">
+      <div class="modal-header">
+        <h5 class="modal-title">Взяти транспорт</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрити"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="vehicle_id" id="v-id">
+        <div class="mb-2">
+          <label class="form-label">Транспорт</label>
+          <input type="text" id="v-name" class="form-control" disabled>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Номера</label>
+          <input type="text" id="v-plate" class="form-control" disabled>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">На який час</label>
+          <input name="duration" class="form-control" placeholder="напр. 2 години / до 18:00" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Причина</label>
+          <textarea name="reason" class="form-control" rows="3" placeholder="Коротко по суті" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Скасувати</button>
+        <button class="btn btn-success" type="submit">Підтвердити</button>
+      </div>
+    </form>
+  </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const takeModal = document.getElementById('takeModal');
+  takeModal.addEventListener('show.bs.modal', e => {
+    const btn = e.relatedTarget;
+    document.getElementById('v-id').value    = btn.dataset.vid;
+    document.getElementById('v-name').value  = btn.dataset.name;
+    document.getElementById('v-plate').value = btn.dataset.plate;
+  });
+</script>
 </body>
 </html>

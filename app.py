@@ -31,7 +31,7 @@ SAI_ALLOWED_ROLES   = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD")
 SAI_LOG_CHANNEL_ID  = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 
-# Список транспорту (приклад; допиши свої)
+# Список транспорту (приклад; заміни на свої зображення/плашки)
 VEHICLES = [
     {"id": "car_01", "name": "Vapid f150", "plate": "BCSD-07", "img": "/static/vehicles/car1.jpg"},
     {"id": "car_02", "name": "Vapid f150", "plate": "BCSD-16", "img": "/static/vehicles/car1.jpg"},
@@ -70,7 +70,7 @@ def init_db():
             reason TEXT,
             date TEXT
         )""")
-        # військові квитки (залишаємо як є)
+        # військові квитки (як було)
         c.execute("""
         CREATE TABLE IF NOT EXISTS military_tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,7 +101,6 @@ init_db()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def user_has_any_role(member, allowed_names):
-    """Чи має користувач хоч одну з потрібних ролей (за назвою)."""
     if not member or not allowed_names:
         return False
     names = {r.name for r in member.roles if r and r.name}
@@ -124,12 +123,11 @@ def my_active_rentals(discord_user_id: str):
         """, (discord_user_id,))
         return c.fetchall()
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+# ── Routes: базові ────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("login.html")
 
-# /login з підтримкою next
 @app.route("/login")
 def login():
     next_page = request.args.get("next", "/dashboard")
@@ -280,7 +278,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ── SAI: звіт на підвищення (лише для SAI_ALLOWED_ROLES) ─────────────────────
+# ── SAI: (залишив, якщо потрібно) ────────────────────────────────────────────
 @app.route("/sai", methods=["GET", "POST"])
 def sai_report():
     if "user" not in session:
@@ -328,14 +326,12 @@ def sai_report():
 
     return render_template("sai_report.html")
 
-# ── VEHICLES: показати лише вільні, дозволити взяти/повернути ────────────────
+# ── VEHICLES: вільні картки + взяти/повернути ────────────────────────────────
 @app.route("/vehicles")
 def vehicles():
     if "user" not in session:
         return redirect("/login?next=/vehicles")
-    # вільні картки
     available = [v for v in VEHICLES if not is_vehicle_taken(v["id"])]
-    # мої активні
     mine = my_active_rentals(session["user"]["id"])
     return render_template("vehicles.html", vehicles=available, my_rentals=mine)
 
@@ -359,7 +355,6 @@ def vehicles_take():
     user = session["user"]
     now_str = datetime.now(ZoneInfo("Europe/Kyiv")).strftime("%Y-%m-%d %H:%M:%S")
 
-    # запис у БД
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
         c.execute("""
@@ -368,7 +363,6 @@ def vehicles_take():
         """, (v["id"], v["plate"], v["name"], user["id"], user.get("username","Unknown"), duration, reason, now_str))
         conn.commit()
 
-    # Discord
     embed = discord.Embed(
         title="🚓 Видача транспорту",
         description=(
@@ -414,7 +408,6 @@ def vehicles_return():
         c.execute("UPDATE vehicle_rentals SET returned_at=? WHERE id=?", (now_str, rental_id))
         conn.commit()
 
-    # повідомлення у Discord
     embed = discord.Embed(
         title="✅ Повернення транспорту",
         description=(
