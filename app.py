@@ -16,13 +16,10 @@ app.secret_key = os.getenv("SECRET_KEY")
 BOT_TOKEN            = os.getenv("BOT_TOKEN")
 GUILD_ID             = int(os.getenv("GUILD_ID"))
 LOG_CHANNEL_ID       = int(os.getenv("LOG_CHANNEL_ID"))
-TICKETS_CHANNEL_ID   = int(os.getenv("TICKETS_CHANNEL_ID"))
 CLIENT_ID            = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET        = os.getenv("DISCORD_CLIENT_SECRET")
 REDIRECT_URI         = os.getenv("DISCORD_REDIRECT_URI")
-TICKETS_REDIRECT_URI = os.getenv("DISCORD_TICKETS_REDIRECT_URI")
 ALLOWED_ROLES        = os.getenv("ALLOWED_ROLES").split(",")
-ALLOWED_TICKET_ROLES = ["Командування National Guard"]
 
 intents = discord.Intents.default()
 intents.members = True
@@ -201,113 +198,6 @@ def download_db():
 def logout():
     session.clear()
     return redirect("/")
-
-
-# ——— Облік військових квитків ———
-
-@app.route("/login_tickets")
-def login_tickets():
-    url = (
-        f"https://discord.com/api/oauth2/authorize?"
-        f"client_id={CLIENT_ID}"
-        f"&redirect_uri={TICKETS_REDIRECT_URI}"
-        f"&response_type=code"
-        f"&scope=identify%20guilds.members.read"
-    )
-    return redirect(url)
-
-@app.route("/tickets_callback")
-def tickets_callback():
-    code = request.args.get("code")
-    if not code:
-        return "❌ Помилка авторизації."
-
-    data = {
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": TICKETS_REDIRECT_URI,
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
-    if not r.ok:
-        return f"❌ Помилка токену: {r.status_code} {r.text}"
-
-    access_token = r.json()["access_token"]
-    user_info = requests.get(
-        "https://discord.com/api/users/@me",
-        headers={"Authorization": f"Bearer {access_token}"}
-    ).json()
-
-    guild_member = requests.get(
-        f"https://discord.com/api/users/@me/guilds/{GUILD_ID}/member",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    if guild_member.status_code != 200:
-        return "❌ Ви не є учасником сервера."
-
-    roles = guild_member.json().get("roles", [])
-    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
-    for r_id in roles:
-        role = discord.utils.get(guild.roles, id=int(r_id))
-        if role and role.name in ALLOWED_TICKET_ROLES:
-            session["user"] = user_info
-            return redirect("/tickets")
-
-    return "❌ У вас немає доступу до обліку квитків."
-
-@app.route("/tickets", methods=["GET", "POST"])
-def tickets():
-    if "user" not in session:
-        return redirect("/")
-
-    if request.method == "POST":
-        issuer    = session["user"]["username"]
-        issued_id = session["user"]["id"]
-        name      = request.form["name"]
-        static_id = request.form["static_id"]
-        days      = int(request.form["days"])
-        amount    = float(request.form["amount"])
-        now_kyiv  = datetime.now(ZoneInfo("Europe/Kyiv"))
-
-        # запис у БД
-        with sqlite3.connect("audit.db") as conn:
-            c = conn.cursor()
-            c.execute("""
-                INSERT INTO military_tickets
-                (name, static_id, days, amount, issued_by, date)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                name,
-                static_id,
-                days,
-                amount,
-                issuer,
-                now_kyiv.strftime("%Y-%m-%d %H:%M:%S")
-            ))
-            conn.commit()
-
-        # embed
-        embed = discord.Embed(
-            title="🎫 Облік військових квитків",
-            description=(
-                f"👤 **Кому:** {name} | `{static_id}`\n"
-                f"📆 **Днів:** {days}\n"
-                f"💰 **Сума:** `{amount:.3f}$`\n"
-                f"🗓 **Дата:** `{now_kyiv.strftime('%d.%m.%Y')}`\n"
-                f"✍️ **Видав:** <@{issued_id}>"
-            ),
-            color=discord.Color.green()
-        )
-        ch = bot.get_channel(TICKETS_CHANNEL_ID)
-        if ch:
-            bot.loop.create_task(ch.send(embed=embed))
-
-        return redirect("/tickets")
-
-    return render_template("tickets.html")
-
 # ——— Запуск ———
 
 def run_flask():
