@@ -250,7 +250,6 @@ def sai_report():
         rank_from   = request.form.get("rank_from", "").strip()
         rank_to     = request.form.get("rank_to", "").strip()
         work_report = request.form.get("work_report", "").strip()
-        proofs_text = request.form.get("proofs", "").strip()
 
         if not author_tag or not rank_from or not rank_to or not work_report:
             return "❌ Заповніть усі обов'язкові поля.", 400
@@ -264,7 +263,6 @@ def sai_report():
                 f"👤 **Тег:** {author_tag}\n"
                 f"🎖️ **Ранг:** {rank_from} → {rank_to}\n"
                 f"📝 **Звіт:** {work_report}\n"
-                f"📎 **Докази:** {proofs_text if proofs_text else '–'}\n"
                 f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
                 f"✍️ **Хто подав:** <@{author_id}>\n"
                 "━━━━━━━━━━━━━━━━━━━"
@@ -280,6 +278,7 @@ def sai_report():
         return redirect("/sai")
 
     return render_template("sai_report.html")
+
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 def run_flask():
