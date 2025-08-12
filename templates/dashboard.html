@@ -1,115 +1,176 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Dashboard | National Guard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet">
-
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet" />
   <style>
     :root{
-      --glass: rgba(10,12,20,.78);
-      --glass-strong: rgba(10,12,20,.88);
+      --bg-grad1: rgba(88,101,242,.18);
+      --bg-grad2: rgba(14,165,233,.16);
+      --glass: rgba(11,14,24,.78);
+      --glass-strong: rgba(11,14,24,.88);
       --border: rgba(255,255,255,.12);
       --soft: rgba(255,255,255,.85);
-      --accent:#ffc107;
-      --btn:#22c55e;
-      --btn-h:#1fa351;
+      --title: #ffffff;
+      --green:#22c55e;
+      --green-h:#1fa351;
+      --yellow:#fbbf24;
+      --sky:#0ea5e9;
+      --danger:#ef4444;
+      --focus:#8b5cf6;
     }
     body{
-      background: url("/static/bg.jpg") center/cover fixed no-repeat;
-      color:#fff; font-family:'Segoe UI',sans-serif;
+      background:
+        radial-gradient(1200px 600px at 120% -10%, var(--bg-grad1), transparent 55%),
+        radial-gradient(1000px 800px at -20% 120%, var(--bg-grad2), transparent 60%),
+        url("/static/bg.jpg") center/cover fixed no-repeat;
+      color:#fff; font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
     }
-    .wrap{
-      max-width: 1100px; margin: 40px auto; padding: 0 16px;
+
+    .wrap{ max-width: 1180px; margin: 40px auto; padding: 0 16px; }
+
+    /* Header */
+    .hero{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      margin-bottom: 18px;
     }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .badge-dot{
+      width:14px; height:14px; border-radius:50%;
+      background: var(--yellow);
+      box-shadow: 0 0 16px var(--yellow);
+    }
+    .hero h1{
+      margin:0; font-weight:900; letter-spacing:.2px; color:var(--title);
+      text-shadow: 0 12px 26px rgba(0,0,0,.55);
+    }
+    .hero small{ color: var(--soft) }
+
+    /* Panel */
     .panel{
+      position:relative;
       background: var(--glass);
       border:1px solid var(--border);
-      border-radius:20px;
+      border-radius:22px;
       padding:22px;
-      box-shadow: 0 18px 48px rgba(0,0,0,.5);
+      box-shadow: 0 20px 60px rgba(0,0,0,.55);
       backdrop-filter: blur(8px);
+      transition:.25s;
+      overflow:hidden;
     }
     .panel:hover{ background: var(--glass-strong) }
+    .panel::before{
+      content:""; position:absolute; inset:-40%;
+      background:
+        radial-gradient(700px 360px at 110% -10%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(700px 360px at -10% 120%, rgba(168,85,247,.12), transparent 55%);
+      pointer-events:none; filter: blur(2px);
+    }
 
     .head{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      margin-bottom: 14px;
+      display:flex; align-items:center; justify-content:space-between; gap:14px;
+      margin-bottom: 10px;
     }
-    .head h2{
-      margin:0; font-weight:800; letter-spacing:.2px;
-      text-shadow: 0 8px 28px rgba(0,0,0,.6);
-    }
-    .sub{ color:var(--soft) }
+    .head h2{ margin:0; font-weight:800; letter-spacing:.2px }
+    .sub{ color: var(--soft) }
 
-    label{ color:#f1f5f9; font-weight:600; margin-bottom:.45rem }
+    .inline-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    /* Inputs */
+    label{ color:#f8fafc; font-weight:700; margin-bottom:.45rem }
     .form-text{ color: var(--soft) }
 
     .form-control, .form-select{
-      background:#fff !important; color:#000 !important;
-      border:1px solid #ced4da !important; border-radius:.6rem !important;
-      padding:.6rem .8rem !important;
+      background:#ffffff !important; color:#000 !important;
+      border:1px solid #d0d7e2 !important; border-radius:.8rem !important;
+      padding:.72rem .9rem !important; box-shadow:none !important;
+      transition: border-color .15s, box-shadow .15s;
     }
-    textarea.form-control{ min-height: 86px }
+    .form-control:focus, .form-select:focus{
+      border-color: #c4b5fd !important;
+      box-shadow: 0 0 0 .25rem rgba(139,92,246,.25) !important;
+      outline: none;
+    }
+    textarea.form-control{ min-height: 92px }
 
-    /* Select2 (Bootstrap4 theme) tweaks */
+    /* Select2 theme tweaks */
     .select2-container--bootstrap4 .select2-selection--single{
-      height: 44px !important; padding: 6px 10px !important;
-      border-radius:.6rem !important; border:1px solid #ced4da !important;
+      height: 48px !important; padding: 8px 12px !important;
+      border-radius:.8rem !important; border:1px solid #d0d7e2 !important;
       background:#fff !important;
+      transition: border-color .15s, box-shadow .15s;
     }
     .select2-container--bootstrap4 .select2-selection__rendered{
-      color:#000 !important; line-height: 30px !important;
+      color:#000 !important; line-height: 32px !important;
     }
+    .select2-container--bootstrap4 .select2-selection__arrow { height: 100% }
     .select2-container--bootstrap4 .select2-results__option{
       color:#000 !important; background:#fff !important;
     }
     .select2-container--bootstrap4 .select2-results__option--highlighted{
-      background:#cce5ff !important; color:#000 !important;
+      background:#e2e8f0 !important; color:#000 !important;
+    }
+    .select2-container--bootstrap4.select2-container--focus .select2-selection{
+      border-color:#c4b5fd !important; box-shadow: 0 0 0 .25rem rgba(139,92,246,.25) !important;
     }
 
+    /* Buttons */
     .btn-success{
-      background: var(--btn); border:none; font-weight:700;
-      padding:.7rem 1.1rem; border-radius:.75rem;
+      background: var(--green); border:none; font-weight:800;
+      padding:.78rem 1.15rem; border-radius:.9rem; letter-spacing:.2px;
+      transition:.2s;
     }
-    .btn-success:hover{ background: var(--btn-h) }
+    .btn-success:hover{ background: var(--green-h); transform: translateY(-1px) }
     .btn-outline-light, .btn-outline-danger{
-      border-radius:.75rem; font-weight:600;
+      border-radius:.9rem; font-weight:700; letter-spacing:.2px;
     }
 
-    .inline-actions{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-    }
+    /* helper */
+    .grid{ display:grid; gap:16px; grid-template-columns: 1fr; }
+    @media (min-width: 900px){ .grid{ grid-template-columns: 1fr 1fr } .full{ grid-column: 1 / -1 } }
+
+    .soft-line{ border-top:1px dashed var(--border); margin:14px 0 }
+
+    /* Manual link */
     .link-manual{
       color:#93c5fd; cursor:pointer; text-decoration: underline dotted;
-      font-size:.95rem;
+      font-weight:600;
     }
-    .grid{
-      display:grid; gap:16px;
-      grid-template-columns: 1fr;
-    }
-    @media (min-width: 768px){
-      .grid{
-        grid-template-columns: 1fr 1fr;
-      }
-      .grid .full{ grid-column: 1 / -1 }
-    }
+    .link-manual:hover{ color:#60a5fa }
 
-    /* Divider line */
-    .soft-line{ border-top:1px dashed var(--border); margin:14px 0 }
+    /* Quick chips for action */
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px }
+    .chip{
+      padding:8px 12px; background:#0b1322; border:1px solid var(--border);
+      color:#cbd5e1; border-radius:999px; font-weight:700; cursor:pointer; transition:.2s;
+    }
+    .chip:hover{ transform: translateY(-1px) }
   </style>
 </head>
 <body>
 
   <div class="wrap">
+    <!-- header -->
+    <div class="hero">
+      <div class="brand">
+        <span class="badge-dot"></span>
+        <h1>National Guard • Кадровий аудит</h1>
+      </div>
+      <small>Офіційна панель. Авторизація через Discord OAuth2.</small>
+    </div>
+
+    <!-- panel -->
     <div class="panel">
       <div class="head">
         <div>
-          <h2>🛡️ Кадровий аудит — Панель дій</h2>
-          <div class="sub">Заповни дані та відправ — ми залогимо це у Discord і додамо в історію.</div>
+          <h2>🛡️ Панель дій</h2>
+          <div class="sub">Застосуйте кадрову дію — ми залогуємо її у Discord і додамо до історії.</div>
         </div>
         <div class="inline-actions">
           <a href="/history" class="btn btn-outline-light">📋 Історія</a>
@@ -125,26 +186,26 @@
           <!-- Кого -->
           <div class="full">
             <label for="user_id">👤 Кого</label>
-            <div class="mb-2">
-              <select class="form-select" id="user_id" name="user_id" required>
-                {% for name, uid in members %}
-                  <option value="{{ uid }}">{{ name }}</option>
-                {% endfor %}
-              </select>
-            </div>
+            <select class="form-select" id="user_id" name="user_id" required>
+              {% for name, uid in members %}
+                <option value="{{ uid }}">{{ name }}</option>
+              {% endfor %}
+            </select>
 
-            <div class="inline-actions">
+            <div class="d-flex align-items-center gap-2 mt-2">
               <span class="form-text">Можеш обрати зі списку або</span>
               <span id="toggleManual" class="link-manual">ввести Discord ID вручну</span>
             </div>
 
-            <input type="text" class="form-control mt-2 d-none" id="manual_user_id" placeholder="Введіть Discord ID вручну (наприклад 1234567890)">
+            <input type="text" class="form-control mt-2 d-none" id="manual_user_id"
+                   placeholder="Введіть Discord ID вручну (наприклад 1234567890)">
           </div>
 
           <!-- Ім’я | Статичний ID -->
           <div>
             <label for="full_name_id">🆔 Ім’я Прізвище | Статичний ID</label>
-            <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" required>
+            <input type="text" class="form-control" id="full_name_id" name="full_name_id"
+                   placeholder="Nei Wayne | 19311" required>
             <div class="form-text">Формат: Ім’я Прізвище | статичнийID</div>
           </div>
 
@@ -157,19 +218,28 @@
               <option value="Понижено">Понижено</option>
               <option value="Вигнано">Вигнано</option>
             </select>
+            <!-- швидкі чіпи-підказки -->
+            <div class="chips">
+              <span class="chip" data-action="Прийнято">+ Прийнято</span>
+              <span class="chip" data-action="Підвищено">⬆ Підвищено</span>
+              <span class="chip" data-action="Понижено">⬇ Понижено</span>
+              <span class="chip" data-action="Вигнано">✖ Вигнано</span>
+            </div>
           </div>
 
           <!-- Нова роль -->
           <div class="full">
             <label for="role_name">🎖️ Нова роль (за потреби)</label>
-            <input type="text" class="form-control" id="role_name" name="role_name" placeholder="Рекрут, Кадет, ...">
+            <input type="text" class="form-control" id="role_name" name="role_name"
+                   placeholder="Рекрут, Кадет, ...">
             <div class="form-text">Залиш порожнім, якщо роль не змінюється.</div>
           </div>
 
           <!-- Причина -->
           <div class="full">
             <label for="reason">📝 Причина (посилання або коментар)</label>
-            <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ №1 від 20.07.2025'"></textarea>
+            <textarea class="form-control" id="reason" name="reason" rows="2"
+                      placeholder="https://... або 'Наказ №1 від 20.07.2025'"></textarea>
           </div>
         </div>
 
@@ -185,28 +255,23 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script>
     $(function () {
-      // 1) Select2
+      // Select2
       const $sel = $('#user_id').select2({
         theme: 'bootstrap4',
         placeholder: "Оберіть користувача або впишіть вручну",
         width: '100%',
-        tags: true,              // дозволяє вводити нове значення
-        createTag: params => ({  // створюємо тег зі свого вводу
-          id: params.term,
-          text: params.term,
-          newOption: true
-        }),
-        insertTag: (data, tag) => { data.push(tag); }
+        tags: true,
+        createTag: params => ({ id: params.term, text: params.term, newOption: true }),
+        insertTag: (data, tag) => data.push(tag)
       });
 
-      // 2) Перемикач "ввести Discord ID вручну"
+      // Manual Discord ID
       const $manual = $('#manual_user_id');
       $('#toggleManual').on('click', function(){
         $manual.toggleClass('d-none');
         if (!$manual.hasClass('d-none')) { $manual.focus(); }
       });
 
-      // Коли ввели вручну і натиснули Enter або втратили фокус — переносимо в Select2
       $manual.on('keydown', function(e){
         if (e.key === 'Enter') { e.preventDefault(); commitManual(); }
       }).on('blur', commitManual);
@@ -217,8 +282,14 @@
         // додаємо новий тег у select2 і обираємо його
         const newOption = new Option(val, val, true, true);
         $('#user_id').append(newOption).trigger('change');
-        $manual.addClass('d-none'); // ховаємо поле
+        $manual.addClass('d-none');
       }
+
+      // Quick chips → встановлюємо значення у select#action
+      $('.chip').on('click', function(){
+        const v = $(this).data('action');
+        $('#action').val(v).trigger('change');
+      });
     });
   </script>
 </body>
