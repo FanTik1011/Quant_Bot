@@ -628,9 +628,28 @@ def compute_craft_cost(items_qty: dict, level: int):
 # --- Роут: форма/звіт крафту ---
 # ── Конфіг для крафту ─────────────────────────────────────────────
 CRAFT_ITEMS = {
-    "handcuffs": {"label": "Наручники", "base_cost": 25, "is_weapon": False},
+    "handcuffs": {"label": "Кайданки", "base_cost": 25, "is_weapon": False},
     "armor": {"label": "Бронежилет", "base_cost": 20, "is_weapon": False},
-    "rifle": {"label": "Важка гвинтівка [5.56x45]", "base_cost": 56, "is_weapon": True},
+    "heavy_rifle_556": {"label": "Важка гвинтівка [5.56x45]", "base_cost": 56, "is_weapon": True},
+    "ration": {"label": "Сухпайок", "base_cost": 10, "is_weapon": False},
+    "drone": {"label": "Дрон", "base_cost": 4000, "is_weapon": False},
+    "baton": {"label": "Поліцейська дубінка", "base_cost": 10, "is_weapon": False},
+    "taser": {"label": "Тайзер", "base_cost": 20, "is_weapon": False},
+    "micro_smg": {"label": "Мікро-ПП [9x19]", "base_cost": 40, "is_weapon": True},
+    "smg": {"label": "Пістолет-кулемет", "base_cost": 20, "is_weapon": True},
+    "pump_shotgun": {"label": "Помповий дробовик [12/70]", "base_cost": 60, "is_weapon": True},
+    "carbine_mk2": {"label": "Карабін Mk II [5.56x45]", "base_cost": 80, "is_weapon": True},
+    "carbine": {"label": "Карабін [5.56x45]", "base_cost": 40, "is_weapon": True},
+    "heavy_pistol": {"label": "Важкий пістолет [9x19]", "base_cost": 30, "is_weapon": True},
+    "pistol_mk2": {"label": "Пістолет Mk II [9mm]", "base_cost": 30, "is_weapon": True},
+
+    # Боєприпаси
+    "ammo_556": {"label": "Патрони [5.56x45] (10 шт.)", "base_cost": 1, "is_weapon": False},
+    "ammo_9mm": {"label": "Патрони [9x19] (10 шт.)", "base_cost": 1, "is_weapon": False},
+    "ammo_762": {"label": "Патрони [7.62x39] (10 шт.)", "base_cost": 1, "is_weapon": False},
+    "ammo_338": {"label": "Патрони [.338 LAPUA MAGNUM] (10 шт.)", "base_cost": 1, "is_weapon": False},
+    "ammo_12g": {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (10 шт.)", "base_cost": 1, "is_weapon": False},
+    "ammo_45": {"label": "Патрони [.45 ACP] (10 шт.)", "base_cost": 1, "is_weapon": False}
 }
 
 GUNSMITH_LEVELS = {
