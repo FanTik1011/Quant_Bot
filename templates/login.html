@@ -18,6 +18,7 @@
       --seb: #eab308;
       --sa: #f97316;
       --spd: #ef4444;
+      --db: #a78bfa; /* новий колір для DB */
     }
     body{
       background:
@@ -93,6 +94,9 @@
     .btn-bcsd{ background: var(--bcsd) } .btn-bcsd:hover{ background: #4752C4; transform: scale(1.03) }
     .btn-veh{ background: var(--veh) } .btn-veh:hover{ background: #0785bd; transform: scale(1.03) }
     .btn-sai{ background: var(--sai) } .btn-sai:hover{ background: #379366; transform: scale(1.03) }
+    .btn-sa { background: var(--sa)  } .btn-sa:hover { background: #ea580c; transform: scale(1.03) }
+    .btn-db { background: var(--db)  } .btn-db:hover { background: #8b5cf6; transform: scale(1.03) }
+
     .btn-disabled{ background: rgba(255,255,255,.15); cursor:not-allowed; }
     .dept-card{
       grid-column: span 2;
@@ -127,19 +131,29 @@
         <a href="/login?next=/sai" class="btn-wide btn-sai">🆙 Звіт-на-підвищення</a>
       </section>
 
+      <!-- SA -->
+      <section class="card-glass">
+        <div class="title">⚖️ SA</div>
+        <p class="desc">Подання звітів на підвищення у SA.</p>
+        <a href="/login?next=/sa" class="btn-wide btn-sa">🆙 Звіт-на-підвищення (SA)</a>
+        <div style="height:10px"></div>
+        <a href="/login?next=/exam_request" class="btn-wide btn-sai">📝 Запит: іспит / присяга / лекція</a>
+      </section>
+
+      <!-- DB -->
+      <section class="card-glass">
+        <div class="title">🗄️ DB</div>
+        <p class="desc">Резервні копії та перегляд логу дій. Доступ лише після входу.</p>
+        <a href="/login?next=/download_db" class="btn-wide btn-db">📥 Завантажити audit.db</a>
+        <div style="height:10px"></div>
+        <a href="/login?next=/history" class="btn-wide btn-db">📜 Історія дій</a>
+      </section>
+
       <!-- SEB -->
       <section class="card-glass">
         <div class="title">🔫 SEB</div>
         <p class="desc">Незабаром...</p>
         <div class="btn-wide btn-disabled">🚧 У розробці</div>
-      </section>
-
-      <!-- SA -->
-      <section class="card-glass">
-        <div class="title">⚖️ SA</div>
-        <p class="desc">Подання звітів на підвищення у SA.</p>
-        <a href="/login?next=/exam_request" class="btn-wide btn-sai">📝 Запит: іспит / присяга / лекція</a>
-
       </section>
 
       <!-- SPD -->

@@ -32,6 +32,8 @@ VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID)
 
 ALLOWED_ROLES     = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
 SAI_ALLOWED_ROLES = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
+SA_LOG_CHANNEL_ID = int(os.getenv("SA_LOG_CHANNEL_ID", SAI_LOG_CHANNEL_ID))
+
 
 # ── Транспорт: ID = plate (щоб 1:1) ───────────────────────────────────────────
 VEHICLES = [
@@ -484,6 +486,48 @@ def exam_request():
         return redirect("/exam_request?ok=1")
 
     return render_template("exam_request.html")
+@app.route("/sa", methods=["GET", "POST"])
+def sa_report():
+    if "user" not in session:
+        return redirect("/login?next=/sa")
+
+    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    if not guild:
+        return "❌ Бот не бачить сервер."
+
+    if request.method == "POST":
+        rank_from   = request.form.get("rank_from", "").strip()
+        rank_to     = request.form.get("rank_to", "").strip()
+        work_report = request.form.get("work_report", "").strip()
+
+        if not rank_from or not rank_to or not work_report:
+            return "❌ Заповніть усі обов'язкові поля.", 400
+
+        author_id   = session["user"]["id"]
+        author_name = session["user"].get("username", "Unknown")
+
+        embed = discord.Embed(
+            title="🆙 Звіт на підвищення | SA",
+            description=(
+                "━━━━━━━━━━━━━━━━━━━\n"
+                f"🧑‍✈️ **Хто подав:** <@{author_id}> (`{author_name}`)\n"
+                f"🎖️ **Ранг:** {rank_from} → {rank_to}\n"
+                f"📝 **Звіт:** {work_report}\n"
+                f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
+                "━━━━━━━━━━━━━━━━━━━"
+            ),
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="BCSD • SA")
+
+        ch = bot.get_channel(SA_LOG_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
+
+        return redirect("/sa?ok=1")
+
+    return render_template("sa_report.html")
+
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 def run_flask():
