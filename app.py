@@ -527,6 +527,206 @@ def sa_report():
         return redirect("/sa?ok=1")
 
     return render_template("sa_report.html")
+# ENV:
+CRAFT_LOG_CHANNEL_ID = int(os.getenv("CRAFT_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+SENIOR_ROLE_NAME = os.getenv("SENIOR_ROLE_NAME", "Senior Staff")
+
+# --- DB: додай таблицю craft_reports у init_db() ---
+def init_db():
+    with sqlite3.connect("audit.db") as conn:
+        c = conn.cursor()
+        # ... твої інші таблиці ...
+
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS craft_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            author_id TEXT NOT NULL,
+            author_name TEXT NOT NULL,
+            level INTEGER NOT NULL,
+            discount_pct INTEGER NOT NULL,
+            role_cap INTEGER NOT NULL,
+            total_cost INTEGER NOT NULL,
+            items_json TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            submitted_at TEXT NOT NULL
+        )""")
+        conn.commit()
+
+# --- Константи крафту ---
+# Знижка застосовується ТІЛЬКИ до зброї (is_weapon=True)
+GUNSMITH_LEVELS = {
+    1: {"discount_pct": 0},
+    2: {"discount_pct": 10},
+    3: {"discount_pct": 20},
+    4: {"discount_pct": 30},
+    5: {"discount_pct": 50},
+}
+
+# Ліміт матеріалів визначається РОЛЛЮ:
+# є Senior Staff -> 900, інакше -> 500
+def craft_role_cap(member):
+    if not member:
+        return 500
+    names = {r.name for r in member.roles if r and r.name}
+    return 900 if SENIOR_ROLE_NAME in names else 500
+
+# Каталог предметів: base_cost = матеріали за 1 одиницю (або 1 пак для набоїв), is_weapon для знижки
+CRAFT_ITEMS = {
+    "handcuffs":               {"label": "Кайданки (1 шт)",                       "base_cost": 25,   "is_weapon": False},
+    "armor":                   {"label": "Бронежилет (1 шт)",                     "base_cost": 20,   "is_weapon": False},
+    "heavy_rifle_556":         {"label": "Важка гвинтівка [5.56x45] (1 шт)",      "base_cost": 56,   "is_weapon": True},
+    "mre":                     {"label": "Сухпайок (1 шт)",                       "base_cost": 10,   "is_weapon": False},
+    "drone":                   {"label": "Дрон (1 шт)",                           "base_cost": 4000, "is_weapon": False},
+    "baton":                   {"label": "Поліцейська дубінка (1 шт)",            "base_cost": 10,   "is_weapon": False},
+    "taser":                   {"label": "Тайзер (1 шт)",                         "base_cost": 20,   "is_weapon": False},
+    "micro_smg_9x19":          {"label": "Мікро-ПП [9x19] (1 шт)",                "base_cost": 40,   "is_weapon": True},
+    "smg":                     {"label": "Пістолет-пулемет (1 шт)",               "base_cost": 20,   "is_weapon": True},
+    "pump_12_70":              {"label": "Помповий дробовик [12/70] (1 шт)",      "base_cost": 60,   "is_weapon": True},
+    "carbine_mk2_556":         {"label": "Карабін Mk2 [5.56x45] (1 шт)",          "base_cost": 80,   "is_weapon": True},
+    "carbine_556":             {"label": "Карабін [5.56x45] (1 шт)",              "base_cost": 40,   "is_weapon": True},
+    "heavy_pistol_9x19":       {"label": "Важкий пістолет [9x19] (1 шт)",         "base_cost": 30,   "is_weapon": True},
+    "pistol_mk2_9mm":          {"label": "Пістолет Mk2 [9mm] (1 шт)",             "base_cost": 30,   "is_weapon": True},
+
+    # Набої — ціна за ПАК 10 шт
+    "ammo_556_pack":           {"label": "Патрони [5.56x45] (пак 10 шт)",         "base_cost": 1,    "is_weapon": False},
+    "ammo_9x19_pack":          {"label": "Патрони [9x19] (пак 10 шт)",            "base_cost": 1,    "is_weapon": False},
+    "ammo_762x39_pack":        {"label": "Патрони [7.62x39] (пак 10 шт)",         "base_cost": 1,    "is_weapon": False},
+    "ammo_338lm_pack":         {"label": "Патрони [.338 Lapua Magnum] (пак 10)",  "base_cost": 1,    "is_weapon": False},
+    "ammo_12_70_pack":         {"label": "Патрони [12/70 Magnum Buckshot] (пак)", "base_cost": 1,    "is_weapon": False},
+    "ammo_45acp_pack":         {"label": "Патрони [.45 ACP] (пак 10 шт)",         "base_cost": 1,    "is_weapon": False},
+}
+
+# Обчислення вартості з урахуванням знижки на зброю
+def compute_craft_cost(items_qty: dict, level: int):
+    level_info = GUNSMITH_LEVELS.get(level, {"discount_pct": 0})
+    disc = int(level_info["discount_pct"])
+
+    total = 0
+    breakdown = []  # для ембеду та БД
+    for key, qty in items_qty.items():
+        if key not in CRAFT_ITEMS:
+            continue
+        if qty <= 0:
+            continue
+        base = CRAFT_ITEMS[key]["base_cost"]
+        is_weapon = CRAFT_ITEMS[key]["is_weapon"]
+        unit_cost = base
+        if is_weapon and disc > 0:
+            unit_cost = round(base * (100 - disc) / 100)
+        cost = unit_cost * qty
+        total += cost
+        breakdown.append({
+            "key": key,
+            "label": CRAFT_ITEMS[key]["label"],
+            "qty": qty,
+            "unit_cost": unit_cost,
+            "cost": cost,
+            "is_weapon": is_weapon
+        })
+    return total, disc, breakdown
+
+# --- Роут: форма/звіт крафту ---
+@app.route("/craft", methods=["GET", "POST"])
+def craft_report():
+    if "user" not in session:
+        return redirect("/login?next=/craft")
+
+    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    member = discord.utils.get(guild.members, id=int(session["user"]["id"])) if guild else None
+
+    role_cap = craft_role_cap(member)  # 900 або 500
+
+    if request.method == "POST":
+        # 1) автор
+        author_id = session["user"]["id"]
+        author_name = session["user"].get("username", "Unknown")
+
+        # 2) рівень зброяра
+        try:
+            level = int(request.form.get("level", "1"))
+            if level not in GUNSMITH_LEVELS:
+                raise ValueError()
+        except Exception:
+            return "❌ Невірно вказаний рівень.", 400
+
+        # 3) мета
+        purpose = (request.form.get("purpose") or "").strip()
+        if not purpose:
+            return "❌ Вкажіть мету (добова норма / ВЗХ/ВЗГ/ВЗА / Постачання / інше).", 400
+
+        # 4) зібрати кількості
+        items_qty = {}
+        for key in CRAFT_ITEMS.keys():
+            try:
+                qty = int(request.form.get(f"q_{key}", "0"))
+            except Exception:
+                qty = 0
+            items_qty[key] = max(0, qty)
+
+        # 5) обчислення
+        total_cost, discount_pct, breakdown = compute_craft_cost(items_qty, level)
+
+        # 6) перевірка ліміту
+        if total_cost > role_cap:
+            return f"❌ Перевищено ліміт матеріалів: {total_cost} > {role_cap}. Скоротіть кількість.", 400
+
+        # 7) запис у БД
+        now = datetime.now(ZoneInfo("Europe/Kyiv"))
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        import json
+        with sqlite3.connect("audit.db") as conn:
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO craft_reports
+                    (author_id, author_name, level, discount_pct, role_cap, total_cost, items_json, purpose, submitted_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                author_id, author_name, level, discount_pct, role_cap, total_cost,
+                json.dumps(breakdown, ensure_ascii=False), purpose, now_str
+            ))
+            conn.commit()
+
+        # 8) ембед у Discord
+        # зберемо короткий перелік тільки тих, де qty>0
+        lines = []
+        for item in breakdown:
+            lines.append(f"- {item['label']}: x{item['qty']} × {item['unit_cost']} = {item['cost']}")
+
+        desc = (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            f"🧑‍🏭 **Хто крафтить:** <@{author_id}> (`{author_name}`)\n"
+            f"🛠️ **Рівень зброяра:** {level} (знижка на зброю: {discount_pct}%)\n"
+            f"📦 **Ліміт за посадою:** {role_cap} матеріалів\n"
+            f"🎯 **Мета:** {purpose}\n"
+            f"🧾 **Сума:** {total_cost} матеріалів\n"
+            f"📄 **Номенклатура:**\n" + ("\n".join(lines) if lines else "—") + "\n"
+            f"🕒 **Дата:** `{now:%d.%m.%Y %H:%M}`\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "_Нагадування: знижка застосовується тільки до зброї._"
+        )
+
+        embed = discord.Embed(
+            title="🧰 Звіт крафту",
+            description=desc,
+            color=discord.Color.teal()
+        )
+        embed.set_footer(text="BCSD • Craft Report")
+
+        ch = bot.get_channel(CRAFT_LOG_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
+
+        return redirect("/craft?ok=1")
+
+    # GET — рендеримо форму
+    # передамо в шаблон каталог, кап і дефолт рівень
+    return render_template(
+        "craft_report.html",
+        catalog=CRAFT_ITEMS,
+        role_cap=role_cap,
+        levels=GUNSMITH_LEVELS
+    )
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
