@@ -626,6 +626,56 @@ def compute_craft_cost(items_qty: dict, level: int):
     return total, disc, breakdown
 
 # --- Роут: форма/звіт крафту ---
+# ── Конфіг для крафту ─────────────────────────────────────────────
+CRAFT_ITEMS = {
+    "handcuffs": {"label": "Наручники", "base_cost": 25, "is_weapon": False},
+    "armor": {"label": "Бронежилет", "base_cost": 20, "is_weapon": False},
+    "rifle": {"label": "Важка гвинтівка [5.56x45]", "base_cost": 56, "is_weapon": True},
+}
+
+GUNSMITH_LEVELS = {
+    1: {"discount_pct": 0, "cap": 500},
+    2: {"discount_pct": 10, "cap": 750},
+    3: {"discount_pct": 20, "cap": 1000},
+    4: {"discount_pct": 30, "cap": 1250},
+    5: {"discount_pct": 50, "cap": 1500},
+}
+
+CRAFT_LOG_CHANNEL_ID = int(os.getenv("CRAFT_LOG_CHANNEL_ID", 0))
+
+# ── Функції ───────────────────────────────────────────────────────
+def craft_role_cap(member):
+    """Визначає ліміт за роллю (900 для Senior Staff, інакше стандарт по рівню)."""
+    if not member:
+        return 500
+    if any(r.name == "Senior Staff" for r in member.roles):
+        return 900
+    return 500
+
+def compute_craft_cost(items_qty, level):
+    """Підраховує загальну вартість, знижку і детальний список."""
+    discount_pct = GUNSMITH_LEVELS.get(level, {}).get("discount_pct", 0)
+    breakdown = []
+    total_cost = 0
+
+    for key, qty in items_qty.items():
+        if key not in CRAFT_ITEMS or qty <= 0:
+            continue
+        unit_cost = CRAFT_ITEMS[key]["base_cost"]
+        if CRAFT_ITEMS[key]["is_weapon"] and discount_pct > 0:
+            unit_cost = round(unit_cost * (100 - discount_pct) / 100)
+        cost = unit_cost * qty
+        total_cost += cost
+        breakdown.append({
+            "label": CRAFT_ITEMS[key]["label"],
+            "qty": qty,
+            "unit_cost": unit_cost,
+            "cost": cost
+        })
+
+    return total_cost, discount_pct, breakdown
+
+# ── Роут ──────────────────────────────────────────────────────────
 @app.route("/craft", methods=["GET", "POST"])
 def craft_report():
     if "user" not in session:
@@ -633,15 +683,12 @@ def craft_report():
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     member = discord.utils.get(guild.members, id=int(session["user"]["id"])) if guild else None
-
-    role_cap = craft_role_cap(member)  # 900 або 500
+    role_cap = craft_role_cap(member)
 
     if request.method == "POST":
-        # 1) автор
         author_id = session["user"]["id"]
         author_name = session["user"].get("username", "Unknown")
 
-        # 2) рівень зброяра
         try:
             level = int(request.form.get("level", "1"))
             if level not in GUNSMITH_LEVELS:
@@ -649,12 +696,10 @@ def craft_report():
         except Exception:
             return "❌ Невірно вказаний рівень.", 400
 
-        # 3) мета
         purpose = (request.form.get("purpose") or "").strip()
         if not purpose:
-            return "❌ Вкажіть мету (добова норма / ВЗХ/ВЗГ/ВЗА / Постачання / інше).", 400
+            return "❌ Вкажіть мету.", 400
 
-        # 4) зібрати кількості
         items_qty = {}
         for key in CRAFT_ITEMS.keys():
             try:
@@ -663,20 +708,31 @@ def craft_report():
                 qty = 0
             items_qty[key] = max(0, qty)
 
-        # 5) обчислення
         total_cost, discount_pct, breakdown = compute_craft_cost(items_qty, level)
 
-        # 6) перевірка ліміту
         if total_cost > role_cap:
-            return f"❌ Перевищено ліміт матеріалів: {total_cost} > {role_cap}. Скоротіть кількість.", 400
+            return f"❌ Перевищено ліміт матеріалів: {total_cost} > {role_cap}.", 400
 
-        # 7) запис у БД
         now = datetime.now(ZoneInfo("Europe/Kyiv"))
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
         import json
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS craft_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    author_id TEXT,
+                    author_name TEXT,
+                    level INTEGER,
+                    discount_pct INTEGER,
+                    role_cap INTEGER,
+                    total_cost INTEGER,
+                    items_json TEXT,
+                    purpose TEXT,
+                    submitted_at TEXT
+                )
+            """)
             c.execute("""
                 INSERT INTO craft_reports
                     (author_id, author_name, level, discount_pct, role_cap, total_cost, items_json, purpose, submitted_at)
@@ -687,30 +743,19 @@ def craft_report():
             ))
             conn.commit()
 
-        # 8) ембед у Discord
-        # зберемо короткий перелік тільки тих, де qty>0
-        lines = []
-        for item in breakdown:
-            lines.append(f"- {item['label']}: x{item['qty']} × {item['unit_cost']} = {item['cost']}")
+        lines = [f"- {item['label']}: x{item['qty']} × {item['unit_cost']} = {item['cost']}" for item in breakdown]
 
         desc = (
-            "━━━━━━━━━━━━━━━━━━━\n"
             f"🧑‍🏭 **Хто крафтить:** <@{author_id}> (`{author_name}`)\n"
-            f"🛠️ **Рівень зброяра:** {level} (знижка на зброю: {discount_pct}%)\n"
-            f"📦 **Ліміт за посадою:** {role_cap} матеріалів\n"
+            f"🛠️ **Рівень зброяра:** {level} (знижка: {discount_pct}%)\n"
+            f"📦 **Ліміт:** {role_cap} матеріалів\n"
             f"🎯 **Мета:** {purpose}\n"
             f"🧾 **Сума:** {total_cost} матеріалів\n"
             f"📄 **Номенклатура:**\n" + ("\n".join(lines) if lines else "—") + "\n"
             f"🕒 **Дата:** `{now:%d.%m.%Y %H:%M}`\n"
-            "━━━━━━━━━━━━━━━━━━━\n"
-            "_Нагадування: знижка застосовується тільки до зброї._"
         )
 
-        embed = discord.Embed(
-            title="🧰 Звіт крафту",
-            description=desc,
-            color=discord.Color.teal()
-        )
+        embed = discord.Embed(title="🧰 Звіт крафту", description=desc, color=discord.Color.teal())
         embed.set_footer(text="BCSD • Craft Report")
 
         ch = bot.get_channel(CRAFT_LOG_CHANNEL_ID)
@@ -719,14 +764,13 @@ def craft_report():
 
         return redirect("/craft?ok=1")
 
-    # GET — рендеримо форму
-    # передамо в шаблон каталог, кап і дефолт рівень
     return render_template(
         "craft_report.html",
         catalog=CRAFT_ITEMS,
         role_cap=role_cap,
         levels=GUNSMITH_LEVELS
     )
+
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
