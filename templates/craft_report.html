@@ -7,221 +7,153 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
     :root{
-      --bg1: rgba(88,101,242,.18);
-      --bg2: rgba(14,165,233,.16);
-      --glass: rgba(15,18,30,.78);
-      --glass-strong: rgba(15,18,30,.88);
-      --panel: rgba(255,255,255,.06);
+      --glass: rgba(15, 18, 30, .78);
+      --glass-strong: rgba(15, 18, 30, .88);
       --border: rgba(255,255,255,.14);
       --soft: rgba(255,255,255,.85);
-      --head-grad: linear-gradient(90deg,#0ea5e9 0%, #14b8a6 50%, #22c55e 100%);
+      --accent:#14b8a6;
+      --accent2:#0ea5e9;
       --focus: rgba(14,165,233,.25);
-      --ok: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
     }
     body{
       background:
-        radial-gradient(1100px 520px at 110% -10%, var(--bg1), transparent 55%),
-        radial-gradient(1000px 780px at -15% 120%, var(--bg2), transparent 60%),
+        radial-gradient(1100px 520px at 110% -10%, rgba(88,101,242,.18), transparent 55%),
+        radial-gradient(1000px 780px at -15% 120%, rgba(14,165,233,.16), transparent 60%),
         url("/static/bg.jpg") center/cover fixed no-repeat;
       min-height:100vh; color:#fff; font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
-      display:flex; align-items:flex-start; justify-content:center; padding:28px;
+      display:flex; align-items:center; justify-content:center; padding:26px;
     }
-    .shell{ width:100%; max-width:1100px; }
-
-    /* Шапка */
-    .hero{
-      background: var(--head-grad);
-      border-radius: 22px;
-      padding: 16px 18px;
-      box-shadow: 0 18px 60px rgba(0,0,0,.4);
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-    }
-    .hero .ttl{ font-weight:900; letter-spacing:.2px; margin:0; text-shadow:0 10px 26px rgba(0,0,0,.35) }
-    .hero small{ opacity:.95 }
-    .logout{
-      background:#dc3545; border:none; color:#fff; font-weight:700; padding:.6rem .95rem; border-radius:.9rem;
-      transition:.2s;
-    }
-    .logout:hover{ background:#b02a37; transform: translateY(-1px) }
-
-    /* Карти */
-    .grid{
-      display:grid; grid-template-columns: 1.05fr .95fr; gap:18px; margin-top:18px;
-    }
-    @media (max-width: 960px){ .grid{ grid-template-columns:1fr } }
     .card-glass{
-      background:var(--glass); border:1px solid var(--border); border-radius:22px; padding:18px;
-      backdrop-filter: blur(10px); box-shadow:0 24px 64px rgba(0,0,0,.55); transition:.25s;
+      background:var(--glass);
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:24px;
+      width:100%; max-width:1000px;
+      box-shadow:0 24px 64px rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+      position:relative; overflow:hidden;
     }
     .card-glass:hover{ background:var(--glass-strong) }
-    .group-title{ font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:.5rem }
-
-    /* Список предметів */
-    .items{
-      max-height: 62vh; overflow:auto;
-      background: var(--panel); border:1px solid var(--border); border-radius:18px; padding:14px;
-    }
-    .row-item{
-      display:grid; grid-template-columns: 1fr 126px; gap:10px; align-items:center;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.06);
-      border-radius: 14px; padding:10px 12px; margin-bottom:10px;
-    }
-    .row-item label{ margin:0; font-weight:700 }
-
-    /* Правий сайд */
-    .summary{ background: var(--panel); border:1px solid var(--border); border-radius:18px; padding:16px; }
-    .muted{ color:var(--soft) }
-    .cap{ font-weight:900 }
-    .kv{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 14px; padding:10px 12px; margin:8px 0;
-    }
-
+    .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+    .title{ margin:0; font-weight:900; letter-spacing:.2px; text-shadow:0 10px 26px rgba(0,0,0,.55); }
+    .sub{ color:var(--soft); margin-top:-2px }
+    .btn-logout{ background:#dc3545; border:none; color:#fff; font-weight:700; padding:.55rem .9rem; border-radius:.8rem; }
+    .btn-logout:hover{ background:#b02a37 }
+    label{ color:#f8fafc; font-weight:700; margin-bottom:.45rem }
+    .form-text{ color:var(--soft) }
     .form-control, .form-select{
       background:#ffffff !important; color:#000 !important;
       border:1px solid #d0d7e2 !important; border-radius:.85rem !important;
-      padding:.6rem .8rem !important; box-shadow:none !important;
+      padding:.55rem .75rem !important; box-shadow:none !important;
     }
     .form-control:focus, .form-select:focus{
       border-color:#93c5fd !important;
       box-shadow:0 0 0 .25rem var(--focus) !important;
       outline:none;
     }
-
-    /* Кнопка */
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+    .items{ background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:18px; padding:16px; }
+    .summary{ background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:18px; padding:16px; }
+    .group-title{ font-weight:800; margin-bottom:10px }
+    .row-item{ display:grid; grid-template-columns: 1fr 110px; gap:10px; align-items:center; margin-bottom:10px; }
+    .muted{ color:var(--soft) }
+    .cap{ font-weight:800; }
     .btn-send{
-      background:var(--head-grad); border:none; color:#001018; font-weight:900;
-      padding:.9rem 1.1rem; border-radius:1rem; width:100%; letter-spacing:.2px; transition:.2s;
-      box-shadow: 0 12px 32px rgba(20,184,166,.25);
+      background:linear-gradient(90deg, var(--accent), var(--accent2));
+      border:none; color:#001018; font-weight:900;
+      padding:.8rem 1.1rem; border-radius:1rem; width:100%;
+      letter-spacing:.2px; transition:.2s;
     }
-    .btn-send:hover{ transform:translateY(-1px); filter:brightness(1.03) }
-
-    /* Прогрес по ліміту */
-    .progress-wrap{ margin-top:10px }
-    .progress{
-      height: 12px; border-radius: 999px; background: rgba(255,255,255,.15);
-      border:1px solid var(--border);
-    }
-    .progress-bar{
-      background: var(--head-grad);
-    }
+    .btn-send:hover{ transform:translateY(-1px); filter:brightness(1.05) }
     .badge-soft{ background: rgba(255,255,255,.14); color:#fff; border:1px solid var(--border) }
-
-    .note{ font-size:.9rem; opacity:.95 }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <!-- Шапка -->
-    <div class="hero">
+  <div class="card-glass">
+    <div class="header">
       <div>
-        <h3 class="ttl">🧰 Звіт крафту</h3>
-        <small>BCSD Department — офіційна форма подачі</small>
+        <h3 class="title">🧰 Звіт крафту</h3>
+        <div class="sub">BCSD Department — офіційна форма подачі</div>
       </div>
       {% if session.get('user') %}
-        <a href="/logout" class="btn logout">🚪 Вийти</a>
+        <a href="/logout" class="btn btn-logout">🚪 Вийти</a>
       {% endif %}
     </div>
 
     {% if request.args.get('ok') %}
-      <div class="alert alert-success mt-3 border-0 shadow-sm">✅ Звіт успішно надіслано.</div>
+      <div class="alert alert-success border-0 shadow-sm">✅ Звіт успішно надіслано.</div>
     {% endif %}
 
-    <form method="post" id="craftForm" class="mt-3">
+    <form method="post" id="craftForm" class="mt-2">
       <div class="grid">
-        <!-- Ліва колонка: предмети -->
-        <div class="card-glass">
+        <!-- Ліва колонка -->
+        <div class="items">
           <div class="group-title">📦 Снарядження</div>
-          <div class="items">
-            {% for key, item in catalog.items() %}
-              <div class="row-item">
-                <label class="form-label">{{ item.label }}</label>
-                <input type="number" min="0" step="1" value="0" class="form-control" name="q_{{ key }}" data-key="{{ key }}">
-              </div>
-            {% endfor %}
-          </div>
+          {% for key, item in catalog.items() %}
+            <div class="row-item">
+              <label class="form-label m-0">{{ item.label }}</label>
+              <input type="number" min="0" step="1" value="0" class="form-control" name="q_{{ key }}" data-key="{{ key }}">
+            </div>
+          {% endfor %}
         </div>
 
-        <!-- Права колонка: налаштування + підсумок -->
-        <div class="card-glass summary">
+        <!-- Права колонка -->
+        <div class="summary">
           <div class="group-title">⚙️ Налаштування</div>
 
           <div class="mb-3">
             <label class="form-label">Хто крафтить</label>
             <input class="form-control" value="{{ session['user']['username'] if session.get('user') else '' }}" disabled>
-            <div class="form-text">Підтягується автоматично з Discord.</div>
+            <div class="form-text">Автоматично з Discord</div>
           </div>
 
           <div class="mb-3">
             <label class="form-label">Рівень зброяра</label>
             <select class="form-select" name="level" id="level">
               {% for lvl, info in levels.items() %}
-                <option value="{{ lvl }}">Рівень {{ lvl }} (знижка на зброю: {{ info.discount_pct }}%)</option>
+                <option value="{{ lvl }}">Рівень {{ lvl }} (знижка: {{ info.discount_pct }}%)</option>
               {% endfor %}
             </select>
-            <div class="form-text">Знижка застосовується <b>лише</b> до зброї (не до амуніції та спорядження).</div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Мета (добова норма / ВЗХ / ВЗГ / ВЗА / Постачання)</label>
+            <label class="form-label">Мета</label>
             <input class="form-control" name="purpose" placeholder="добова норма моя" required>
           </div>
 
           <hr class="border-secondary">
 
-          <div class="kv">
-            <div class="muted">Ліміт матеріалів за роллю</div>
+          <div class="d-flex justify-content-between">
+            <div class="muted">Ліміт матеріалів</div>
             <div class="cap"><span id="cap">{{ role_cap }}</span> мат.</div>
           </div>
-          <div class="kv">
-            <div class="muted">Орієнтовна сума (з урах. знижки)</div>
+          <div class="d-flex justify-content-between mt-1">
+            <div class="muted">Орієнтовна сума</div>
             <div class="cap"><span id="sum">0</span> мат.</div>
           </div>
-          <div class="mt-1">
+          <div class="mt-2">
             <span class="badge badge-soft" id="discountBadge">Знижка: 0%</span>
           </div>
 
-          <!-- Прогрес -->
-          <div class="progress-wrap">
-            <div class="d-flex justify-content-between muted mb-1">
-              <small>Використання ліміту</small>
-              <small id="pct">0%</small>
-            </div>
-            <div class="progress">
-              <div class="progress-bar" id="bar" role="progressbar" style="width:0%"></div>
-            </div>
-          </div>
-
           <button class="btn btn-send mt-3" type="submit">📤 Відправити звіт</button>
-
-          <div class="mt-3 note">
-            📌 Нагадування: знижка діє тільки на зброю. Якщо сума перевищить ліміт — значення підсвітиться червоним.
-          </div>
         </div>
       </div>
     </form>
   </div>
 
   <script>
-    // Дані каталогу для клієнтського підрахунку
-    const CATALOG = {{ catalog | tojson }};
-    const LEVELS  = {{ levels | tojson }};
+    const CATALOG = JSON.parse(`{{ catalog | tojson | safe }}`);
+    const LEVELS  = JSON.parse(`{{ levels  | tojson | safe }}`);
     const capEl   = document.getElementById('cap');
     const sumEl   = document.getElementById('sum');
     const levelEl = document.getElementById('level');
     const discountBadge = document.getElementById('discountBadge');
-    const pctEl  = document.getElementById('pct');
-    const barEl  = document.getElementById('bar');
 
     function currentDiscount(){
       const lvl = parseInt(levelEl.value || "1", 10);
       return (LEVELS[lvl] && LEVELS[lvl].discount_pct) ? LEVELS[lvl].discount_pct : 0;
     }
+
     function isWeapon(key){
       return CATALOG[key] && !!CATALOG[key].is_weapon;
     }
@@ -244,21 +176,8 @@
       });
 
       sumEl.textContent = total;
-
       const cap = parseInt(capEl.textContent, 10);
-      // Колір підсумку
-      sumEl.style.color = (total > cap) ? getComputedStyle(document.documentElement).getPropertyValue('--bad') : '#ffffff';
-
-      // Прогрес
-      const pct = Math.min(100, Math.round(100 * total / Math.max(1, cap)));
-      pctEl.textContent = pct + '%';
-      barEl.style.width = pct + '%';
-
-      // Колір прогрес-бара по зоні
-      let color = 'linear-gradient(90deg,#22c55e,#16a34a)'; // ok
-      if (pct >= 85 && pct < 100) color = 'linear-gradient(90deg,#f59e0b,#eab308)';
-      if (pct >= 100) color = 'linear-gradient(90deg,#ef4444,#f43f5e)';
-      barEl.style.background = color;
+      sumEl.style.color = (total > cap) ? '#ff6b6b' : '#ffffff';
     }
 
     document.querySelectorAll('input[name^="q_"]').forEach(inp => {
