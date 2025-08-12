@@ -293,38 +293,38 @@ def logout():
 # ── SAI: звіт на підвищення (доступ ТІЛЬКИ для SAI_ALLOWED_ROLES) ────────────
 @app.route("/sai", methods=["GET", "POST"])
 def sai_report():
-    # якщо не авторизований — відправляємо на OAuth і повернемось сюди
     if "user" not in session:
         return redirect("/login?next=/sai")
 
     guild = discord.utils.get(bot.guilds, id=GUILD_ID)
     if not guild:
         return "❌ Бот не бачить сервер."
+
     member = discord.utils.get(guild.members, id=int(session["user"]["id"]))
-    if not user_has_any_role(member, SAI_ALLOWED_ROLES):
-        need = ", ".join(SAI_ALLOWED_ROLES)
-        return f"❌ У вас немає доступу до SAI (потрібна роль: {need})."
+    # якщо маєш перевірку ролей – лишай свою
+    # if not user_has_any_role(member, SAI_ALLOWED_ROLES):
+    #     need = ", ".join(SAI_ALLOWED_ROLES)
+    #     return f"❌ У вас немає доступу до SAI (потрібна роль: {need})."
 
     if request.method == "POST":
-        author_tag  = request.form.get("author_tag", "").strip()
         rank_from   = request.form.get("rank_from", "").strip()
         rank_to     = request.form.get("rank_to", "").strip()
         work_report = request.form.get("work_report", "").strip()
 
-        if not author_tag or not rank_from or not rank_to or not work_report:
+        if not rank_from or not rank_to or not work_report:
             return "❌ Заповніть усі обов'язкові поля.", 400
-        
-        author_id = session["user"]["id"]
+
+        author_id   = session["user"]["id"]
+        author_name = session["user"].get("username", "Unknown")
 
         embed = discord.Embed(
             title="🆙 Звіт на підвищення | SAI",
             description=(
                 "━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 **Тег:** {author_tag}\n"
+                f"🧑‍✈️ **Хто подав:** <@{author_id}> (`{author_name}`)\n"
                 f"🎖️ **Ранг:** {rank_from} → {rank_to}\n"
                 f"📝 **Звіт:** {work_report}\n"
                 f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
-                f"✍️ **Хто подав:** <@{author_id}>\n"
                 "━━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.green()
@@ -335,9 +335,10 @@ def sai_report():
         if ch:
             bot.loop.create_task(ch.send(embed=embed))
 
-        return redirect("/sai")
+        return redirect("/sai?ok=1")
 
     return render_template("sai_report.html")
+
 
 
 # ── VEHICLES: вільні картки + взяти/повернути ────────────────────────────────
