@@ -34,24 +34,32 @@ SAI_LOG_CHANNEL_ID  = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 
 # Список транспорту (приклад; заміни на свої зображення/плашки)
+
 VEHICLES = [
-    {"id": "car_01", "name": "Vapid f150", "plate": "BCSD-07", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_02", "name": "Vapid f150", "plate": "BCSD-16", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_03", "name": "Vapid f150", "plate": "BCSD-08", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_04", "name": "Vapid f150", "plate": "BCSD-05", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_05", "name": "Vapid f150", "plate": "BCSD-19", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_06", "name": "Vapid f150", "plate": "BCSD-17", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_07", "name": "Vapid f150", "plate": "BCSD-18", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_08", "name": "Vapid f150", "plate": "BCSD-06", "img": "/static/vehicles/car1.jpg"},
-    {"id": "car_10", "name": "Vapid explorer", "plate": "BCSD-03", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_11", "name": "Vapid explorer", "plate": "BCSD-14", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_12", "name": "Vapid explorer", "plate": "BCSD-01", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_13", "name": "Vapid explorer", "plate": "BCSD-02", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_14", "name": "Vapid explorer", "plate": "BCSD-04", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_15", "name": "Vapid explorer", "plate": "BCSD-13", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_16", "name": "Vapid explorer", "plate": "BCSD-15", "img": "/static/vehicles/car2.jpg"},
-    {"id": "car_16", "name": "Vapid explorer", "plate": "BCSD-12", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-07", "name": "Vapid f150",     "plate": "BCSD-07", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-16", "name": "Vapid f150",     "plate": "BCSD-16", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-08", "name": "Vapid f150",     "plate": "BCSD-08", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-05", "name": "Vapid f150",     "plate": "BCSD-05", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-19", "name": "Vapid f150",     "plate": "BCSD-19", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-17", "name": "Vapid f150",     "plate": "BCSD-17", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-18", "name": "Vapid f150",     "plate": "BCSD-18", "img": "/static/vehicles/car1.jpg"},
+    {"id": "BCSD-06", "name": "Vapid f150",     "plate": "BCSD-06", "img": "/static/vehicles/car1.jpg"},
+
+    {"id": "BCSD-03", "name": "Vapid explorer", "plate": "BCSD-03", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-14", "name": "Vapid explorer", "plate": "BCSD-14", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-01", "name": "Vapid explorer", "plate": "BCSD-01", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-02", "name": "Vapid explorer", "plate": "BCSD-02", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-04", "name": "Vapid explorer", "plate": "BCSD-04", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-13", "name": "Vapid explorer", "plate": "BCSD-13", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-15", "name": "Vapid explorer", "plate": "BCSD-15", "img": "/static/vehicles/car2.jpg"},
+    {"id": "BCSD-12", "name": "Vapid explorer", "plate": "BCSD-12", "img": "/static/vehicles/car2.jpg"},
 ]
+
+
+# Після визначення VEHICLES:
+VEHICLES_BY_ID = {v["id"]: v for v in VEHICLES}
+assert len(VEHICLES_BY_ID) == len(VEHICLES), "Duplicate vehicle IDs in VEHICLES!"
+
 
 # ── Discord bot ────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -359,7 +367,7 @@ def vehicles_take():
     duration   = request.form.get("duration", "").strip()
     reason     = request.form.get("reason", "").strip()
 
-    v = next((x for x in VEHICLES if x["id"] == vehicle_id), None)
+    v = VEHICLES_BY_ID.get(vehicle_id)   # <— використовуємо мапу
     if not v:
         return "❌ Невідомий транспорт.", 400
     if not duration or not reason:
@@ -373,31 +381,15 @@ def vehicles_take():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
         c.execute("""
-            INSERT INTO vehicle_rentals (vehicle_id, plate, model, taken_by_id, taken_by_name, duration, reason, taken_at, returned_at)
+            INSERT INTO vehicle_rentals
+            (vehicle_id, plate, model, taken_by_id, taken_by_name, duration, reason, taken_at, returned_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """, (v["id"], v["plate"], v["name"], user["id"], user.get("username","Unknown"), duration, reason, now_str))
         conn.commit()
 
-    embed = discord.Embed(
-        title="🚓 Видача транспорту",
-        description=(
-            "━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 **Хто взяв:** <@{user['id']}> (`{user.get('username','Unknown')}`)\n"
-            f"🪪 **Номера транспорту:** `{v['plate']}`\n"
-            f"🚘 **Модель:** {v['name']}\n"
-            f"⏳ **На час:** {duration}\n"
-            f"📝 **Причина:** {reason}\n"
-            f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y %H:%M}`\n"
-            "━━━━━━━━━━━━━━━━━━━"
-        ),
-        color=discord.Color.gold()
-    )
-    embed.set_footer(text="BCSD • Vehicle Request")
-    ch = bot.get_channel(VEHICLE_LOG_CHANNEL_ID)
-    if ch:
-        bot.loop.create_task(ch.send(embed=embed))
-
+    # ... (embed як у тебе)
     return redirect("/vehicles?ok=1")
+
 
 @app.route("/vehicles/return", methods=["POST"])
 def vehicles_return():

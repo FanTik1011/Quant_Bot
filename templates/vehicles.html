@@ -4,36 +4,101 @@
   <meta charset="UTF-8" />
   <title>Транспорт | BCSD</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
   <style>
-    body{background:url("/static/bg.jpg") center/cover fixed no-repeat;color:#fff}
-    .card{background:rgba(0,0,0,.75);border-radius:16px;backdrop-filter:blur(4px)}
-    .vehicle-card img{width:100%;height:160px;object-fit:cover;border-radius:12px}
-    .muted{opacity:.85}
-    .badge-plate{background:#ffc107;color:#000}
-    .sticky-topbar{position:sticky;top:0;z-index:9;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+    :root{
+      --glass: rgba(11,14,24,.78);
+      --glass-strong: rgba(11,14,24,.88);
+      --border: rgba(255,255,255,.12);
+      --soft: rgba(255,255,255,.85);
+      --plate:#ffd54f;
+      --take:#f59e0b;
+      --take-h:#d97706;
+      --return:#22c55e;
+      --return-h:#16a34a;
+    }
+    body{
+      background:
+        radial-gradient(1100px 520px at 110% -10%, rgba(88,101,242,.18), transparent 55%),
+        radial-gradient(1000px 780px at -15% 120%, rgba(14,165,233,.16), transparent 60%),
+        url("/static/bg.jpg") center/cover fixed no-repeat;
+      color:#fff; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    }
+
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      background: rgba(6,8,14,.7); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand{ font-weight:900; letter-spacing:.3px; text-shadow:0 10px 24px rgba(0,0,0,.5) }
+
+    .panel{
+      background: var(--glass); border:1px solid var(--border); border-radius:22px;
+      padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.55); backdrop-filter: blur(8px);
+    }
+    .section-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .section-head small{ color:var(--soft) }
+
+    .vehicle-card{
+      background: rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:18px; overflow:hidden;
+      transition:.25s; height:100%;
+    }
+    .vehicle-card:hover{ transform: translateY(-2px); background: rgba(255,255,255,.06) }
+    .vehicle-photo{ width:100%; height:170px; object-fit:cover; display:block; }
+    .vehicle-body{ padding:14px }
+    .vehicle-title{ display:flex; align-items:center; justify-content:space-between; gap:10px }
+    .plate{
+      background: var(--plate); color:#000; font-weight:900;
+      border-radius:12px; padding:.25rem .55rem; letter-spacing:.3px;
+      box-shadow:0 0 16px rgba(255,213,79,.35);
+    }
+    .muted{ color:var(--soft) }
+
+    .form-control{
+      background:#fff !important; color:#000 !important;
+      border:1px solid #d0d7e2 !important; border-radius:.8rem !important;
+      padding:.65rem .85rem !important;
+    }
+    .form-control:focus{
+      border-color:#c4b5fd !important;
+      box-shadow:0 0 0 .2rem rgba(139,92,246,.25) !important;
+    }
+
+    .btn-take{
+      background: var(--take); border:none; color:#1f1300; font-weight:800;
+      border-radius:.9rem; padding:.65rem .9rem; width:100%;
+    }
+    .btn-take:hover{ background: var(--take-h) }
+
+    .btn-return{
+      background: var(--return); border:none; color:#001b0a; font-weight:800;
+      border-radius:.9rem; padding:.6rem .9rem;
+    }
+    .btn-return:hover{ background: var(--return-h) }
   </style>
 </head>
 <body>
-  <div class="sticky-topbar">
-    <div class="container py-3 d-flex justify-content-between align-items-center">
-      <h2 class="m-0">🚓 Транспорт — BCSD</h2>
-      <div class="btn-group">
-        <a href="/logout" class="btn btn-outline-danger">Вийти</a>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="container py-3 d-flex align-items-center justify-content-between">
+      <h2 class="brand m-0">🚓 Транспорт — BCSD</h2>
+      <div class="d-flex gap-2">
+        <a href="/dashboard" class="btn btn-outline-light">← До аудиту</a>
+        <a href="/logout" class="btn btn-outline-danger">🚪 Вийти</a>
       </div>
     </div>
   </div>
 
-  <div class="container py-3">
+  <div class="container my-3">
 
-    {# ---- АЛЕРТИ СТАТУСУ ---- #}
+    <!-- Статус -->
     {% set ok = request.args.get('ok') %}
     {% set returned = request.args.get('returned') %}
     {% set err = request.args.get('err') %}
-
     {% if ok %}
       <div class="alert alert-success border-0 shadow-sm">✅ Транспорт видано.</div>
     {% endif %}
@@ -49,88 +114,85 @@
     {% endif %}
 
     <!-- Доступні авто -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h4 class="m-0">Доступні зараз</h4>
-      <small class="text-white-50">Показуються лише авто, які ніхто не тримає</small>
-    </div>
+    <div class="panel mb-3">
+      <div class="section-head mb-2">
+        <h4 class="m-0">Доступні зараз</h4>
+        <small>Відображаються лише вільні одиниці транспорту</small>
+      </div>
 
-    <div class="row g-3">
-      {% for v in vehicles %}
-        <div class="col-md-4">
-          <div class="card p-3 vehicle-card h-100 shadow-sm">
-            <img src="{{ v.img }}" alt="{{ v.name }}" />
-            <div class="mt-3">
-              <div class="d-flex justify-content-between align-items-center">
-                <strong>{{ v.name }}</strong>
-                <span class="badge badge-plate">{{ v.plate }}</span>
+      <div class="row g-3">
+        {% for v in vehicles %}
+          <div class="col-sm-6 col-lg-4">
+            <div class="vehicle-card h-100">
+              <img class="vehicle-photo" src="{{ v.img }}" alt="{{ v.name }}">
+              <div class="vehicle-body">
+                <div class="vehicle-title">
+                  <strong>{{ v.name }}</strong>
+                  <span class="plate">{{ v.plate }}</span>
+                </div>
+
+                <form method="post" action="/vehicles/take" class="mt-3">
+                  <!-- Важливо: передаємо і vehicle_id, і контрольну plate -->
+                  <input type="hidden" name="vehicle_id" value="{{ v.id }}">
+                  <input type="hidden" name="plate_client" value="{{ v.plate }}">
+
+                  <div class="mb-2">
+                    <input name="duration" class="form-control" placeholder="Тривалість (напр. 2 год.)" required>
+                  </div>
+                  <div class="mb-2">
+                    <input name="reason" class="form-control" placeholder="Причина" required>
+                  </div>
+                  <button class="btn btn-take">Взяти</button>
+                </form>
               </div>
-
-              <form method="post" action="/vehicles/take" class="mt-3">
-                <input type="hidden" name="vehicle_id" value="{{ v.id }}" />
-                <div class="mb-2">
-                  <input
-                    name="duration"
-                    class="form-control"
-                    placeholder="Тривалість (напр. 2 год.)"
-                    required
-                  />
-                </div>
-                <div class="mb-2">
-                  <input
-                    name="reason"
-                    class="form-control"
-                    placeholder="Причина"
-                    required
-                  />
-                </div>
-                <button class="btn btn-warning w-100">Взяти</button>
-              </form>
             </div>
           </div>
-        </div>
-      {% else %}
-        <div class="col-12">
-          <div class="card p-4 text-center">
-            <div class="h5 m-0">Немає доступного транспорту.</div>
+        {% else %}
+          <div class="col-12">
+            <div class="text-center muted py-4">Немає доступного транспорту.</div>
           </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
-
-    <hr class="border-secondary my-4" />
 
     <!-- Мої активні бронювання -->
-    <h4 class="mb-3">Мої активні бронювання</h4>
-    <div class="row g-3">
-      {% for r in my_rentals %}
-        {# r: (id, vehicle_id, plate, model, duration, reason, taken_at) #}
-        <div class="col-md-6">
-          <div class="card p-3 h-100">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <strong>{{ r[3] }}</strong>
-                <span class="badge badge-plate ms-2">{{ r[2] }}</span>
+    <div class="panel">
+      <div class="section-head mb-2">
+        <h4 class="m-0">Мої активні бронювання</h4>
+        <small>Тут можна повернути транспорт</small>
+      </div>
+
+      <div class="row g-3">
+        {% for r in my_rentals %}
+          {# r: (id, vehicle_id, plate, model, duration, reason, taken_at) #}
+          <div class="col-md-6">
+            <div class="vehicle-card h-100">
+              <div class="vehicle-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="d-flex align-items-center gap-2">
+                    <strong>{{ r[3] }}</strong>
+                    <span class="plate">{{ r[2] }}</span>
+                  </div>
+                  <small class="muted">{{ r[6] }}</small>
+                </div>
+
+                <div class="muted mt-2">⏳ Тривалість: {{ r[4] }}</div>
+                <div class="muted">📝 Причина: {{ r[5] }}</div>
+
+                <form method="post" action="/vehicles/return" class="mt-3">
+                  <input type="hidden" name="rental_id" value="{{ r[0] }}">
+                  <button class="btn btn-return">Повернути</button>
+                </form>
               </div>
-              <span class="muted">{{ r[6] }}</span>
             </div>
-            <div class="muted mt-2">⏳ Тривалість: {{ r[4] }}</div>
-            <div class="muted">📝 Причина: {{ r[5] }}</div>
-
-            <form method="post" action="/vehicles/return" class="mt-3">
-              <input type="hidden" name="rental_id" value="{{ r[0] }}" />
-              <button class="btn btn-success">Повернути</button>
-            </form>
           </div>
-        </div>
-      {% else %}
-        <div class="col-12">
-          <div class="card p-4 text-center">
-            <div class="h6 m-0 text-white-50">Активних бронювань немає.</div>
+        {% else %}
+          <div class="col-12">
+            <div class="text-center muted py-4">Активних бронювань немає.</div>
           </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
-
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
