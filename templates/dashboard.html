@@ -1,144 +1,225 @@
-
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard | National Guard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Dashboard | National Guard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet">
 
-   <style>
-    body {
-        background: url("/static/bg.jpg") no-repeat center center fixed;
-        background-size: cover;
-        color: white;
-        font-family: 'Segoe UI', sans-serif;
+  <style>
+    :root{
+      --glass: rgba(10,12,20,.78);
+      --glass-strong: rgba(10,12,20,.88);
+      --border: rgba(255,255,255,.12);
+      --soft: rgba(255,255,255,.85);
+      --accent:#ffc107;
+      --btn:#22c55e;
+      --btn-h:#1fa351;
+    }
+    body{
+      background: url("/static/bg.jpg") center/cover fixed no-repeat;
+      color:#fff; font-family:'Segoe UI',sans-serif;
+    }
+    .wrap{
+      max-width: 1100px; margin: 40px auto; padding: 0 16px;
+    }
+    .panel{
+      background: var(--glass);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:22px;
+      box-shadow: 0 18px 48px rgba(0,0,0,.5);
+      backdrop-filter: blur(8px);
+    }
+    .panel:hover{ background: var(--glass-strong) }
+
+    .head{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom: 14px;
+    }
+    .head h2{
+      margin:0; font-weight:800; letter-spacing:.2px;
+      text-shadow: 0 8px 28px rgba(0,0,0,.6);
+    }
+    .sub{ color:var(--soft) }
+
+    label{ color:#f1f5f9; font-weight:600; margin-bottom:.45rem }
+    .form-text{ color: var(--soft) }
+
+    .form-control, .form-select{
+      background:#fff !important; color:#000 !important;
+      border:1px solid #ced4da !important; border-radius:.6rem !important;
+      padding:.6rem .8rem !important;
+    }
+    textarea.form-control{ min-height: 86px }
+
+    /* Select2 (Bootstrap4 theme) tweaks */
+    .select2-container--bootstrap4 .select2-selection--single{
+      height: 44px !important; padding: 6px 10px !important;
+      border-radius:.6rem !important; border:1px solid #ced4da !important;
+      background:#fff !important;
+    }
+    .select2-container--bootstrap4 .select2-selection__rendered{
+      color:#000 !important; line-height: 30px !important;
+    }
+    .select2-container--bootstrap4 .select2-results__option{
+      color:#000 !important; background:#fff !important;
+    }
+    .select2-container--bootstrap4 .select2-results__option--highlighted{
+      background:#cce5ff !important; color:#000 !important;
     }
 
-    .form-container {
-        background-color: rgba(0, 0, 0, 0.75);
-        padding: 2rem;
-        border-radius: 1rem;
-        margin-top: 2rem;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    .btn-success{
+      background: var(--btn); border:none; font-weight:700;
+      padding:.7rem 1.1rem; border-radius:.75rem;
+    }
+    .btn-success:hover{ background: var(--btn-h) }
+    .btn-outline-light, .btn-outline-danger{
+      border-radius:.75rem; font-weight:600;
     }
 
-    label {
-        color: #ccc;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
+    .inline-actions{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .link-manual{
+      color:#93c5fd; cursor:pointer; text-decoration: underline dotted;
+      font-size:.95rem;
+    }
+    .grid{
+      display:grid; gap:16px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 768px){
+      .grid{
+        grid-template-columns: 1fr 1fr;
+      }
+      .grid .full{ grid-column: 1 / -1 }
     }
 
-    select, input, textarea {
-        color: black !important;
-        background-color: #fff !important;
-        border-radius: 0.375rem !important;
-        border: 1px solid #ced4da !important;
-        padding: 0.5rem 0.75rem !important;
-        box-shadow: none !important;
-    }
-
-    .select2-container--bootstrap4 .select2-selection--single {
-        height: 40px !important;
-        padding: 5px 10px;
-        background-color: #fff !important;
-        border: 1px solid #ced4da !important;
-        border-radius: 0.375rem !important;
-    }
-
-    .select2-container--bootstrap4 .select2-selection__rendered {
-        color: black !important;
-        line-height: 28px !important;
-    }
-
-    .select2-container--bootstrap4 .select2-results__option {
-        color: black !important;
-        background-color: white !important;
-    }
-
-    .select2-container--bootstrap4 .select2-results__option--highlighted {
-        background-color: #cce5ff !important;
-        color: black !important;
-    }
-
-    button, a.btn {
-        margin-top: 1rem;
-    }
-</style>
-
+    /* Divider line */
+    .soft-line{ border-top:1px dashed var(--border); margin:14px 0 }
+  </style>
 </head>
 <body>
-<div class="container form-container">
-    <h2 class="mb-4">🛡️ Кадровий аудит - Панель дій</h2>
-   <form method="POST">
-  <div class="mb-3">
-<select class="form-select" id="user_id" name="user_id" required>
-    {% for name, uid in members %}
-        <option value="{{ uid }}">{{ name }}</option>
-    {% endfor %}
-</select>
 
-<input type="text" class="form-control mt-2 d-none" id="manual_user_id" placeholder="Введіть Discord ID вручну">
+  <div class="wrap">
+    <div class="panel">
+      <div class="head">
+        <div>
+          <h2>🛡️ Кадровий аудит — Панель дій</h2>
+          <div class="sub">Заповни дані та відправ — ми залогимо це у Discord і додамо в історію.</div>
+        </div>
+        <div class="inline-actions">
+          <a href="/history" class="btn btn-outline-light">📋 Історія</a>
+          <a href="/logout" class="btn btn-outline-danger">🚪 Вийти</a>
+        </div>
+      </div>
 
-</div>
+      <div class="soft-line"></div>
 
-<div class="mb-3">
-    <label for="full_name_id" class="form-label">🆔 Ім’я Прізвище | Статичний ID</label>
-    <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" required>
-</div>
+      <form method="POST">
+        <div class="grid">
 
+          <!-- Кого -->
+          <div class="full">
+            <label for="user_id">👤 Кого</label>
+            <div class="mb-2">
+              <select class="form-select" id="user_id" name="user_id" required>
+                {% for name, uid in members %}
+                  <option value="{{ uid }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
 
+            <div class="inline-actions">
+              <span class="form-text">Можеш обрати зі списку або</span>
+              <span id="toggleManual" class="link-manual">ввести Discord ID вручну</span>
+            </div>
 
-    <div class="mb-3">
-        <label for="action" class="form-label">📌 Дія</label>
-        <select class="form-select" id="action" name="action" required>
-            <option value="Прийнято">Прийнято</option>
-            <option value="Підвищено">Підвищено</option>
-            <option value="Понижено">Понижено</option>
-            <option value="Вигнано">Вигнано</option>
-        </select>
+            <input type="text" class="form-control mt-2 d-none" id="manual_user_id" placeholder="Введіть Discord ID вручну (наприклад 1234567890)">
+          </div>
+
+          <!-- Ім’я | Статичний ID -->
+          <div>
+            <label for="full_name_id">🆔 Ім’я Прізвище | Статичний ID</label>
+            <input type="text" class="form-control" id="full_name_id" name="full_name_id" placeholder="Nei Wayne | 19311" required>
+            <div class="form-text">Формат: Ім’я Прізвище | статичнийID</div>
+          </div>
+
+          <!-- Дія -->
+          <div>
+            <label for="action">📌 Дія</label>
+            <select class="form-select" id="action" name="action" required>
+              <option value="Прийнято">Прийнято</option>
+              <option value="Підвищено">Підвищено</option>
+              <option value="Понижено">Понижено</option>
+              <option value="Вигнано">Вигнано</option>
+            </select>
+          </div>
+
+          <!-- Нова роль -->
+          <div class="full">
+            <label for="role_name">🎖️ Нова роль (за потреби)</label>
+            <input type="text" class="form-control" id="role_name" name="role_name" placeholder="Рекрут, Кадет, ...">
+            <div class="form-text">Залиш порожнім, якщо роль не змінюється.</div>
+          </div>
+
+          <!-- Причина -->
+          <div class="full">
+            <label for="reason">📝 Причина (посилання або коментар)</label>
+            <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ №1 від 20.07.2025'"></textarea>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center mt-3 gap-2">
+          <button type="submit" class="btn btn-success">✅ Застосувати дію</button>
+          <a href="/history" class="btn btn-outline-light">📋 Переглянути історію</a>
+        </div>
+      </form>
     </div>
+  </div>
 
-<div class="mb-3">
-    <label for="role_name" class="form-label">🎖️ Нова роль (якщо потрібно)</label>
-    <input type="text" class="form-control" id="role_name" name="role_name" placeholder="Рекрут,Кадет, ..." />
-</div>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    $(function () {
+      // 1) Select2
+      const $sel = $('#user_id').select2({
+        theme: 'bootstrap4',
+        placeholder: "Оберіть користувача або впишіть вручну",
+        width: '100%',
+        tags: true,              // дозволяє вводити нове значення
+        createTag: params => ({  // створюємо тег зі свого вводу
+          id: params.term,
+          text: params.term,
+          newOption: true
+        }),
+        insertTag: (data, tag) => { data.push(tag); }
+      });
 
+      // 2) Перемикач "ввести Discord ID вручну"
+      const $manual = $('#manual_user_id');
+      $('#toggleManual').on('click', function(){
+        $manual.toggleClass('d-none');
+        if (!$manual.hasClass('d-none')) { $manual.focus(); }
+      });
 
+      // Коли ввели вручну і натиснули Enter або втратили фокус — переносимо в Select2
+      $manual.on('keydown', function(e){
+        if (e.key === 'Enter') { e.preventDefault(); commitManual(); }
+      }).on('blur', commitManual);
 
-    <div class="mb-3">
-        <label for="reason" class="form-label">📝 Причина (посилання або коментар)</label>
-        <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="https://... або 'Наказ 1 від 20.07.2025'"></textarea>
-    </div>
-
-    <button type="submit" class="btn btn-success">✅ Застосувати дію</button>
-    <a href="/history" class="btn btn-outline-light ms-3">📋 Переглянути історію</a>
-    <a href="/logout" class="btn btn-outline-danger float-end">🚪 Вийти</a>
-</form>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $('#user_id').select2({
-            theme: 'bootstrap4',
-            placeholder: "Оберіть користувача або впишіть вручну",
-            width: '100%',
-            tags: true,  // ✅ дозволяє вводити нове значення
-            createTag: function (params) {
-                return {
-                    id: params.term,
-                    text: params.term,
-                    newOption: true
-                };
-            },
-            insertTag: function (data, tag) {
-                data.push(tag);
-            }
-        });
+      function commitManual(){
+        const val = $manual.val().trim();
+        if (!val) return;
+        // додаємо новий тег у select2 і обираємо його
+        const newOption = new Option(val, val, true, true);
+        $('#user_id').append(newOption).trigger('change');
+        $manual.addClass('d-none'); // ховаємо поле
+      }
     });
-</script>
-
+  </script>
+</body>
+</html>
