@@ -14,6 +14,8 @@
       --accent:#14b8a6;
       --accent2:#0ea5e9;
       --focus: rgba(14,165,233,.25);
+      --danger:#ef4444;
+      --ok:#22c55e;
     }
     body{
       background:
@@ -28,7 +30,7 @@
       border:1px solid var(--border);
       border-radius:22px;
       padding:24px;
-      width:100%; max-width:1000px;
+      width:100%; max-width:1150px;
       box-shadow:0 24px 64px rgba(0,0,0,.55);
       backdrop-filter: blur(8px);
       position:relative; overflow:hidden;
@@ -51,21 +53,43 @@
       box-shadow:0 0 0 .25rem var(--focus) !important;
       outline:none;
     }
-    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
-    .items{ background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:18px; padding:16px; }
-    .summary{ background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:18px; padding:16px; }
+    .grid{ display:grid; grid-template-columns: 1.2fr 0.8fr; gap:18px; }
+    .items, .summary, .uploads{
+      background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:18px; padding:16px;
+    }
     .group-title{ font-weight:800; margin-bottom:10px }
-    .row-item{ display:grid; grid-template-columns: 1fr 110px; gap:10px; align-items:center; margin-bottom:10px; }
+    .row-item{ display:grid; grid-template-columns: 1fr 120px; gap:10px; align-items:center; margin-bottom:10px; }
     .muted{ color:var(--soft) }
     .cap{ font-weight:800; }
     .btn-send{
       background:linear-gradient(90deg, var(--accent), var(--accent2));
       border:none; color:#001018; font-weight:900;
-      padding:.8rem 1.1rem; border-radius:1rem; width:100%;
+      padding:.85rem 1.1rem; border-radius:1rem; width:100%;
       letter-spacing:.2px; transition:.2s;
     }
     .btn-send:hover{ transform:translateY(-1px); filter:brightness(1.05) }
     .badge-soft{ background: rgba(255,255,255,.14); color:#fff; border:1px solid var(--border) }
+
+    .warn{ color:#fff; background:rgba(239,68,68,.18); border:1px solid rgba(239,68,68,.45);
+           padding:.6rem .8rem; border-radius:.8rem; display:none; }
+    .ok{ color:#fff; background:rgba(34,197,94,.18); border:1px solid rgba(34,197,94,.45);
+         padding:.6rem .8rem; border-radius:.8rem; display:none; }
+
+    /* uploads */
+    .drop{
+      border:2px dashed var(--border); border-radius:14px; padding:14px;
+      background:rgba(255,255,255,.04);
+    }
+    .thumbs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px }
+    .thumb{
+      width:110px; height:74px; border-radius:10px; overflow:hidden; border:1px solid var(--border);
+      background:#0b1020; display:flex; align-items:center; justify-content:center;
+    }
+    .thumb img{ width:100%; height:100%; object-fit:cover }
+    .mini{ font-size:.95rem; }
+    .breakdown{ background:rgba(0,0,0,.25); border:1px solid var(--border); border-radius:12px; padding:10px; max-height:240px; overflow:auto }
+    .breakdown-item{ display:flex; justify-content:space-between; gap:8px; border-bottom:1px dashed rgba(255,255,255,.12); padding:6px 0 }
+    .breakdown-item:last-child{ border-bottom:none }
   </style>
 </head>
 <body>
@@ -84,17 +108,31 @@
       <div class="alert alert-success border-0 shadow-sm">✅ Звіт успішно надіслано.</div>
     {% endif %}
 
-    <form method="post" id="craftForm" class="mt-2">
+    <!-- ВАЖЛИВО: enctype для фото -->
+    <form method="post" id="craftForm" class="mt-2" enctype="multipart/form-data">
       <div class="grid">
         <!-- Ліва колонка -->
         <div class="items">
           <div class="group-title">📦 Снарядження</div>
+
+          <!-- список інпутів за каталогом -->
           {% for key, item in catalog.items() %}
             <div class="row-item">
               <label class="form-label m-0">{{ item.label }}</label>
-              <input type="number" min="0" step="1" value="0" class="form-control" name="q_{{ key }}" data-key="{{ key }}">
+              <input type="number" min="0" step="1" value="0"
+                     class="form-control" name="q_{{ key }}" data-key="{{ key }}">
             </div>
           {% endfor %}
+
+          <!-- Фото/скріншоти -->
+          <div class="uploads mt-3">
+            <div class="group-title">📸 Скріншоти</div>
+            <div class="mini muted">Додайте знімки інвентаря, крафту та логів (до 20MB/файл). Підтримка: JPG, JPEG, PNG, WEBP.</div>
+            <div class="drop mt-2">
+              <input type="file" class="form-control" name="photos" id="photos" multiple accept=".png,.jpg,.jpeg,.webp">
+              <div class="thumbs" id="thumbs"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Права колонка -->
@@ -114,6 +152,7 @@
                 <option value="{{ lvl }}">Рівень {{ lvl }} (знижка: {{ info.discount_pct }}%)</option>
               {% endfor %}
             </select>
+            <div class="form-text">Знижка поширюється лише на зброю.</div>
           </div>
 
           <div class="mb-3">
@@ -131,29 +170,42 @@
             <div class="muted">Орієнтовна сума</div>
             <div class="cap"><span id="sum">0</span> мат.</div>
           </div>
-          <div class="mt-2">
+          <div class="mt-2 d-flex gap-2 align-items-center">
             <span class="badge badge-soft" id="discountBadge">Знижка: 0%</span>
+            <span id="capWarn" class="warn">Перевищено ліміт! Зменште кількість.</span>
+            <span id="capOk" class="ok">В межах ліміту.</span>
           </div>
 
-          <button class="btn btn-send mt-3" type="submit">📤 Відправити звіт</button>
+          <!-- Live-розбивка -->
+          <div class="mt-3">
+            <div class="group-title mb-2">🧾 Номенклатура (live)</div>
+            <div class="breakdown" id="breakdown"></div>
+          </div>
+
+          <button class="btn btn-send mt-3" id="submitBtn" type="submit">📤 Відправити звіт</button>
         </div>
       </div>
     </form>
   </div>
 
   <script>
+    // Безпечна передача JSON з бекенда
     const CATALOG = JSON.parse(`{{ catalog | tojson | safe }}`);
     const LEVELS  = JSON.parse(`{{ levels  | tojson | safe }}`);
+
     const capEl   = document.getElementById('cap');
     const sumEl   = document.getElementById('sum');
     const levelEl = document.getElementById('level');
     const discountBadge = document.getElementById('discountBadge');
+    const warnEl  = document.getElementById('capWarn');
+    const okEl    = document.getElementById('capOk');
+    const submitBtn = document.getElementById('submitBtn');
+    const breakdownEl = document.getElementById('breakdown');
 
     function currentDiscount(){
       const lvl = parseInt(levelEl.value || "1", 10);
       return (LEVELS[lvl] && LEVELS[lvl].discount_pct) ? LEVELS[lvl].discount_pct : 0;
     }
-
     function isWeapon(key){
       return CATALOG[key] && !!CATALOG[key].is_weapon;
     }
@@ -163,6 +215,7 @@
       const disc = currentDiscount();
       discountBadge.textContent = `Знижка: ${disc}%`;
 
+      const lines = [];
       document.querySelectorAll('input[name^="q_"]').forEach(inp => {
         const key = inp.getAttribute('data-key');
         const qty = Math.max(0, parseInt(inp.value || "0", 10));
@@ -172,12 +225,33 @@
         if (isWeapon(key) && disc > 0){
           unit = Math.round(unit * (100 - disc) / 100);
         }
-        total += unit * qty;
+        const cost = unit * qty;
+        total += cost;
+
+        // лінія для live-розбивки
+        lines.push({ label: CATALOG[key].label, qty, unit, cost });
       });
 
+      // оновити суму
       sumEl.textContent = total;
+
+      // оновити live-розбивку
+      breakdownEl.innerHTML = lines.length
+        ? lines.map(l => `
+            <div class="breakdown-item">
+              <div>${l.label} — <b>${l.qty}</b> шт × ${l.unit}</div>
+              <div>= <b>${l.cost}</b></div>
+            </div>
+          `).join("")
+        : `<div class="muted">— Нічого не обрано —</div>`;
+
+      // ліміт
       const cap = parseInt(capEl.textContent, 10);
-      sumEl.style.color = (total > cap) ? '#ff6b6b' : '#ffffff';
+      const over = total > cap;
+      sumEl.style.color = over ? '#ff6b6b' : '#ffffff';
+      warnEl.style.display = over ? 'inline-block' : 'none';
+      okEl.style.display   = over ? 'none' : 'inline-block';
+      submitBtn.disabled = over; // блокуємо відправку, якщо перебір
     }
 
     document.querySelectorAll('input[name^="q_"]').forEach(inp => {
@@ -185,6 +259,31 @@
     });
     levelEl.addEventListener('change', recompute);
 
+    // Прев’ю картинок
+    const photosInput = document.getElementById('photos');
+    const thumbs = document.getElementById('thumbs');
+    photosInput.addEventListener('change', () => {
+      thumbs.innerHTML = '';
+      const files = Array.from(photosInput.files || []);
+      files.slice(0, 12).forEach(file => {
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        const ok = ['png','jpg','jpeg','webp'].includes(ext);
+        const div = document.createElement('div');
+        div.className = 'thumb';
+        if(!ok){
+          div.textContent = 'Файл не підтримується';
+          thumbs.appendChild(div);
+          return;
+        }
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.onload = () => URL.revokeObjectURL(img.src);
+        div.appendChild(img);
+        thumbs.appendChild(div);
+      });
+    });
+
+    // первинний підрахунок
     recompute();
   </script>
 </body>
