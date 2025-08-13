@@ -607,13 +607,13 @@ def craft_role_cap(member):
 CRAFT_ITEMS = {
     "handcuffs":         {"label": "Кайданки (1 шт)",                              "base_cost": 25,   "is_weapon": False},
     "armor":             {"label": "Бронежилет (1 шт)",                            "base_cost": 20,   "is_weapon": False},
-    "heavy_rifle_556":   {"label": "Важка гвинтівка [5.56x45] (1 шт)",             "base_cost": 56,   "is_weapon": True},
+    "heavy_rifle_556":   {"label": "Важка гвинтівка [5.56x45] (1 шт)",             "base_cost": 57,   "is_weapon": True},
     "mre":               {"label": "Сухпайок (1 шт)",                              "base_cost": 10,   "is_weapon": False},
     "drone":             {"label": "Дрон (1 шт)",                                  "base_cost": 4000, "is_weapon": False},
     "baton":             {"label": "Поліцейська дубінка (1 шт)",                   "base_cost": 10,   "is_weapon": False},
     "taser":             {"label": "Тайзер (1 шт)",                                "base_cost": 20,   "is_weapon": False},
     "micro_smg_9x19":    {"label": "Мікро-ПП [9x19] (1 шт)",                       "base_cost": 40,   "is_weapon": True},
-    "smg":               {"label": "Пістолет-пулемет (1 шт)",                      "base_cost": 20,   "is_weapon": True},
+    "smg":               {"label": "Міні-СМГ (1 шт)",                      "base_cost": 20,   "is_weapon": True},
     "pump_12_70":        {"label": "Помповий дробовик [12/70] (1 шт)",             "base_cost": 60,   "is_weapon": True},
     "carbine_mk2_556":   {"label": "Карабін Mk 2 [5.56x45] (1 шт)",                "base_cost": 80,   "is_weapon": True},
     "carbine_556":       {"label": "Карабін [5.56x45] (1 шт)",                     "base_cost": 40,   "is_weapon": True},
@@ -622,12 +622,12 @@ CRAFT_ITEMS = {
 
     # Патрони — ціна за пак 10 шт
 # Патрони — ціна за 1 шт
-"ammo_556_pack":    {"label": "Патрони [5.56x45] (1 шт)", "base_cost": 0.1, "is_weapon": False},
-"ammo_9x19_pack":   {"label": "Патрони [9x19] (1 шт)",    "base_cost": 0.1, "is_weapon": False},
-"ammo_762x39_pack": {"label": "Патрони [7.62x39] (1 шт)", "base_cost": 0.1, "is_weapon": False},
-"ammo_338lm_pack":  {"label": "Патрони [.338 LAPUA MAGNUM] (1 шт)", "base_cost": 0.1, "is_weapon": False},
-"ammo_12_70_pack":  {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (1 шт)", "base_cost": 0.1, "is_weapon": False},
-"ammo_45acp_pack":  {"label": "Патрони [.45 ACP] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+    "ammo_556_pack":    {"label": "Патрони [5.56x45] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+    "ammo_9x19_pack":   {"label": "Патрони [9x19] (1 шт)",    "base_cost": 0.1, "is_weapon": False},
+    "ammo_762x39_pack": {"label": "Патрони [7.62x39] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+    "ammo_338lm_pack":  {"label": "Патрони [.338 LAPUA MAGNUM] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+    "ammo_12_70_pack":  {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+    "ammo_45acp_pack":  {"label": "Патрони [.45 ACP] (1 шт)", "base_cost": 0.1, "is_weapon": False},
 
 }
 
