@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
+import uuid
+from werkzeug.utils import secure_filename
+
 
 # ── Load .env ──────────────────────────────────────────────────────────────────
 load_dotenv()
@@ -66,47 +69,7 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ── DB init ────────────────────────────────────────────────────────────────────
-def init_db():
-    with sqlite3.connect("audit.db") as conn:
-        c = conn.cursor()
-        # кадровий аудит
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS actions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            executor TEXT,
-            target TEXT,
-            action TEXT,
-            role TEXT,
-            reason TEXT,
-            date TEXT
-        )""")
-        # бронювання транспорту
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS vehicle_rentals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            vehicle_id TEXT NOT NULL,
-            plate TEXT NOT NULL,
-            model TEXT NOT NULL,
-            taken_by_id TEXT NOT NULL,
-            taken_by_name TEXT NOT NULL,
-            duration TEXT NOT NULL,
-            reason TEXT NOT NULL,
-            taken_at TEXT NOT NULL,
-            returned_at TEXT
-        )""")
-        # запити (іспит/присяга/лекція)
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS exam_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            author_name TEXT NOT NULL,
-            author_id   TEXT NOT NULL,
-            action_type TEXT NOT NULL,  -- Присяга / Іспит / Лекція
-            submitted_at TEXT NOT NULL  -- YYYY-MM-DD HH:MM:SS (Europe/Kyiv)
-        )""")
-        conn.commit()
 
-init_db()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def user_has_any_role(member, allowed_names):
@@ -534,29 +497,68 @@ import uuid
 from werkzeug.utils import secure_filename
 from flask import send_from_directory, url_for
 
-# ── Craft: конфіг аплоадів ───────────────────────────────────────────────────
-app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
-app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB
-ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg", "webp"}
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-def allowed_image(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXT
-
-@app.route("/uploads/<path:filename>")
-def uploads(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename, as_attachment=False)
-
-# ── Craft: ENV/ролі/канали ───────────────────────────────────────────────────
+# ── CRAFT ENV / CONFIG ────────────────────────────────────────────────────────
 CRAFT_LOG_CHANNEL_ID = int(os.getenv("CRAFT_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 SENIOR_ROLE_NAME     = os.getenv("SENIOR_ROLE_NAME", "Senior Staff")
 
-# ── Craft: розширення init_db (таблиця craft_reports з фото) ─────────────────
+# Обмеження на розмір запиту з файлами (наприклад, 25MB)
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
+
+# Каталог для завантажень
+UPLOAD_DIR = os.path.join(app.static_folder, "craft_uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_EXTS = {"png", "jpg", "jpeg", "webp"}
+
+def _allowed_file(filename: str) -> bool:
+    if not filename or "." not in filename:
+        return False
+    ext = filename.rsplit(".", 1)[1].lower()
+    return ext in ALLOWED_EXTS
+
+# ── DB: init (єдина версія, без дублів!) ─────────────────────────────────────
 def init_db():
     with sqlite3.connect("audit.db") as conn:
         c = conn.cursor()
-        # ... твої інші CREATE TABLE IF NOT EXISTS ...
 
+        # кадровий аудит
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            executor TEXT,
+            target TEXT,
+            action TEXT,
+            role TEXT,
+            reason TEXT,
+            date TEXT
+        )""")
+
+        # бронювання транспорту
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS vehicle_rentals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vehicle_id TEXT NOT NULL,
+            plate TEXT NOT NULL,
+            model TEXT NOT NULL,
+            taken_by_id TEXT NOT NULL,
+            taken_by_name TEXT NOT NULL,
+            duration TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            taken_at TEXT NOT NULL,
+            returned_at TEXT
+        )""")
+
+        # запити (іспит/присяга/лекція)
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS exam_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            author_name TEXT NOT NULL,
+            author_id   TEXT NOT NULL,
+            action_type TEXT NOT NULL,
+            submitted_at TEXT NOT NULL
+        )""")
+
+        # крафт — звіти
         c.execute("""
         CREATE TABLE IF NOT EXISTS craft_reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -568,13 +570,25 @@ def init_db():
             total_cost   INTEGER NOT NULL,
             items_json   TEXT NOT NULL,
             purpose      TEXT NOT NULL,
-            images_json  TEXT NOT NULL,
             submitted_at TEXT NOT NULL
         )""")
+
+        # крафт — фото (багато-до-одного craft_report_id)
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS craft_photos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            craft_report_id INTEGER NOT NULL,
+            file_path TEXT NOT NULL,
+            FOREIGN KEY (craft_report_id) REFERENCES craft_reports(id)
+        )""")
+
         conn.commit()
 
-# ── Craft: рівні/знижки ──────────────────────────────────────────────────────
-# Знижка діє ЛИШЕ на зброю (is_weapon=True)
+# ВАЖЛИВО: викликати лише ОДИН раз у всьому файлі
+init_db()
+
+# ── КОНСТАНТИ КРАФТУ ─────────────────────────────────────────────────────────
+# знижка застосовується лише до зброї (is_weapon=True)
 GUNSMITH_LEVELS = {
     1: {"discount_pct": 0},
     2: {"discount_pct": 10},
@@ -583,43 +597,42 @@ GUNSMITH_LEVELS = {
     5: {"discount_pct": 50},
 }
 
-# ── Craft: ліміт за роллю (Senior Staff = 900, інакше 500) ───────────────────
+# Ліміт за роллю: Senior Staff → 900, інакше → 500
 def craft_role_cap(member):
     if not member:
         return 500
     names = {r.name for r in member.roles if r and r.name}
     return 900 if SENIOR_ROLE_NAME in names else 500
 
-# ── Craft: каталог предметів (ключі стабільні під фронт) ─────────────────────
+# Каталог предметів
 CRAFT_ITEMS = {
-    "handcuffs":         {"label": "Кайданки (1 шт)",                               "base_cost": 25,   "is_weapon": False},
-    "armor":             {"label": "Бронежилет (1 шт)",                             "base_cost": 20,   "is_weapon": False},
-    "heavy_rifle_556":   {"label": "Важка гвинтівка [5.56x45] (1 шт)",              "base_cost": 56,   "is_weapon": True},
-    "mre":               {"label": "Сухпайок (1 шт)",                               "base_cost": 10,   "is_weapon": False},
-    "drone":             {"label": "Дрон (1 шт)",                                   "base_cost": 4000, "is_weapon": False},
-    "baton":             {"label": "Поліцейська дубінка (1 шт)",                    "base_cost": 10,   "is_weapon": False},
-    "taser":             {"label": "Тайзер (1 шт)",                                 "base_cost": 20,   "is_weapon": False},
-    "micro_smg_9x19":    {"label": "Мікро-ПП [9x19] (1 шт)",                        "base_cost": 40,   "is_weapon": True},
-    "smg":               {"label": "Пістолет-пулемет (1 шт)",                       "base_cost": 20,   "is_weapon": True},
-    "pump_12_70":        {"label": "Помповий дробовик [12/70] (1 шт)",              "base_cost": 60,   "is_weapon": True},
-    "carbine_mk2_556":   {"label": "Карабін Mk2 [5.56x45] (1 шт)",                  "base_cost": 80,   "is_weapon": True},
-    "carbine_556":       {"label": "Карабін [5.56x45] (1 шт)",                      "base_cost": 40,   "is_weapon": True},
-    "heavy_pistol_9x19": {"label": "Важкий пістолет [9x19] (1 шт)",                 "base_cost": 30,   "is_weapon": True},
-    "pistol_mk2_9mm":    {"label": "Пістолет Mk2 [9mm] (1 шт)",                     "base_cost": 30,   "is_weapon": True},
-    # Набої — ціна за ПАК 10 шт
-    "ammo_556_pack":     {"label": "Патрони [5.56x45] (пак 10 шт)",                 "base_cost": 1,    "is_weapon": False},
-    "ammo_9x19_pack":    {"label": "Патрони [9x19] (пак 10 шт)",                    "base_cost": 1,    "is_weapon": False},
-    "ammo_762x39_pack":  {"label": "Патрони [7.62x39] (пак 10 шт)",                 "base_cost": 1,    "is_weapon": False},
-    "ammo_338lm_pack":   {"label": "Патрони [.338 LAPUA MAGNUM] (пак 10 шт)",       "base_cost": 1,    "is_weapon": False},
-    "ammo_12_70_pack":   {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (пак 10 шт)",   "base_cost": 1,    "is_weapon": False},
-    "ammo_45acp_pack":   {"label": "Патрони [.45 ACP] (пак 10 шт)",                 "base_cost": 1,    "is_weapon": False},
+    "handcuffs":         {"label": "Кайданки (1 шт)",                              "base_cost": 25,   "is_weapon": False},
+    "armor":             {"label": "Бронежилет (1 шт)",                            "base_cost": 20,   "is_weapon": False},
+    "heavy_rifle_556":   {"label": "Важка гвинтівка [5.56x45] (1 шт)",             "base_cost": 56,   "is_weapon": True},
+    "mre":               {"label": "Сухпайок (1 шт)",                              "base_cost": 10,   "is_weapon": False},
+    "drone":             {"label": "Дрон (1 шт)",                                  "base_cost": 4000, "is_weapon": False},
+    "baton":             {"label": "Поліцейська дубінка (1 шт)",                   "base_cost": 10,   "is_weapon": False},
+    "taser":             {"label": "Тайзер (1 шт)",                                "base_cost": 20,   "is_weapon": False},
+    "micro_smg_9x19":    {"label": "Мікро-ПП [9x19] (1 шт)",                       "base_cost": 40,   "is_weapon": True},
+    "smg":               {"label": "Пістолет-пулемет (1 шт)",                      "base_cost": 20,   "is_weapon": True},
+    "pump_12_70":        {"label": "Помповий дробовик [12/70] (1 шт)",             "base_cost": 60,   "is_weapon": True},
+    "carbine_mk2_556":   {"label": "Карабін Mk 2 [5.56x45] (1 шт)",                "base_cost": 80,   "is_weapon": True},
+    "carbine_556":       {"label": "Карабін [5.56x45] (1 шт)",                     "base_cost": 40,   "is_weapon": True},
+    "heavy_pistol_9x19": {"label": "Важкий пістолет [9x19] (1 шт)",                "base_cost": 30,   "is_weapon": True},
+    "pistol_mk2_9mm":    {"label": "Пістолет Mk 2 [9mm] (1 шт)",                   "base_cost": 30,   "is_weapon": True},
+
+    # Патрони — ціна за пак 10 шт
+    "ammo_556_pack":     {"label": "Патрони [5.56x45] (пак 10 шт)",                "base_cost": 1,    "is_weapon": False},
+    "ammo_9x19_pack":    {"label": "Патрони [9x19] (пак 10 шт)",                   "base_cost": 1,    "is_weapon": False},
+    "ammo_762x39_pack":  {"label": "Патрони [7.62x39] (пак 10 шт)",                "base_cost": 1,    "is_weapon": False},
+    "ammo_338lm_pack":   {"label": "Патрони [.338 LAPUA MAGNUM] (пак 10 шт)",      "base_cost": 1,    "is_weapon": False},
+    "ammo_12_70_pack":   {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (пак 10 шт)",  "base_cost": 1,    "is_weapon": False},
+    "ammo_45acp_pack":   {"label": "Патрони [.45 ACP] (пак 10 шт)",                "base_cost": 1,    "is_weapon": False},
 }
 
-# ── Craft: підрахунок вартості ────────────────────────────────────────────────
 def compute_craft_cost(items_qty: dict, level: int):
     level_info = GUNSMITH_LEVELS.get(level, {"discount_pct": 0})
     disc = int(level_info["discount_pct"])
-
     total = 0
     breakdown = []
     for key, qty in items_qty.items():
@@ -627,7 +640,9 @@ def compute_craft_cost(items_qty: dict, level: int):
             continue
         base = CRAFT_ITEMS[key]["base_cost"]
         is_weapon = CRAFT_ITEMS[key]["is_weapon"]
-        unit_cost = round(base * (100 - disc) / 100) if (is_weapon and disc > 0) else base
+        unit_cost = base
+        if is_weapon and disc > 0:
+            unit_cost = round(base * (100 - disc) / 100)
         cost = unit_cost * qty
         total += cost
         breakdown.append({
@@ -640,7 +655,7 @@ def compute_craft_cost(items_qty: dict, level: int):
         })
     return total, disc, breakdown
 
-# ── Craft: форма/звіт ─────────────────────────────────────────────────────────
+# ── ROUTE: /craft ─────────────────────────────────────────────────────────────
 @app.route("/craft", methods=["GET", "POST"])
 def craft_report():
     if "user" not in session:
@@ -651,7 +666,6 @@ def craft_report():
     role_cap = craft_role_cap(member)  # 900 або 500
 
     if request.method == "POST":
-        # автор
         author_id   = session["user"]["id"]
         author_name = session["user"].get("username", "Unknown")
 
@@ -680,95 +694,97 @@ def craft_report():
         # підрахунок
         total_cost, discount_pct, breakdown = compute_craft_cost(items_qty, level)
 
-        # перевірка ліміту
+        # ліміт
         if total_cost > role_cap:
             return f"❌ Перевищено ліміт матеріалів: {total_cost} > {role_cap}. Скоротіть кількість.", 400
 
-        # збереження зображень
-        saved_paths = []
-        public_urls = []
-        files = request.files.getlist("photos")  # <input name="photos" multiple>
-        for f in files:
-            if not f or not getattr(f, "filename", ""):
-                continue
-            if not allowed_image(f.filename):
-                continue
-            ext = f.filename.rsplit(".", 1)[1].lower()
-            fname = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}.{ext}"
-            safe_name = secure_filename(fname)
-            save_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
-            f.save(save_path)
-            saved_paths.append(save_path)
-            public_urls.append(url_for("uploads", filename=safe_name, _external=True))
-
-        # запис у БД
+        # час
         now = datetime.now(ZoneInfo("Europe/Kyiv"))
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
+        # збереження в БД
         import json
         with sqlite3.connect("audit.db") as conn:
             c = conn.cursor()
             c.execute("""
                 INSERT INTO craft_reports
-                    (author_id, author_name, level, discount_pct, role_cap, total_cost, items_json, purpose, images_json, submitted_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (author_id, author_name, level, discount_pct, role_cap, total_cost, items_json, purpose, submitted_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 author_id, author_name, level, discount_pct, role_cap, total_cost,
-                json.dumps(breakdown, ensure_ascii=False),
-                purpose,
-                json.dumps(public_urls, ensure_ascii=False),
-                now_str
+                json.dumps(breakdown, ensure_ascii=False), purpose, now_str
             ))
+            craft_id = c.lastrowid
+
+            # ФОТО: збереження у файлову систему + відносні шляхи у БД
+            files = request.files.getlist("photos")
+            saved_paths = []
+            for f in files:
+                if not f or not f.filename:
+                    continue
+                if not _allowed_file(f.filename):
+                    continue
+                safe_name = secure_filename(f.filename)
+                # унікальна назва
+                unique = f"{uuid.uuid4().hex}_{safe_name}"
+                abs_path = os.path.join(UPLOAD_DIR, unique)
+                rel_path = f"/static/craft_uploads/{unique}"
+                f.save(abs_path)
+                saved_paths.append(rel_path)
+                c.execute("""
+                    INSERT INTO craft_photos (craft_report_id, file_path)
+                    VALUES (?, ?)
+                """, (craft_id, rel_path))
+
             conn.commit()
 
-        # текст номенклатури (що і скільки штук)
-        lines = [
-            f"• {item['label']} — {item['qty']} шт × {item['unit_cost']} = {item['cost']}"
-            for item in breakdown if item["qty"] > 0
-        ]
+        # ембед у Discord (що і скільки штук)
+        lines = []
+        for item in breakdown:
+            lines.append(f"- {item['label']}: **{item['qty']} шт** × {item['unit_cost']} = {item['cost']}")
 
         desc = (
             "━━━━━━━━━━━━━━━━━━━\n"
             f"🧑‍🏭 **Хто крафтить:** <@{author_id}> (`{author_name}`)\n"
             f"🛠️ **Рівень зброяра:** {level} (знижка на зброю: {discount_pct}%)\n"
-            f"📦 **Ліміт за посадою:** {role_cap} матеріалів\n"
+            f"📦 **Ліміт за роллю:** {role_cap} матеріалів\n"
             f"🎯 **Мета:** {purpose}\n"
             f"🧾 **Сума:** {total_cost} матеріалів\n"
             f"📄 **Номенклатура:**\n" + ("\n".join(lines) if lines else "—") + "\n"
             f"🕒 **Дата:** `{now:%d.%m.%Y %H:%M}`\n"
-            "━━━━━━━━━━━━━━━━━━━"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "_Нагадування: знижка застосовується тільки до зброї._"
         )
 
-        embed = discord.Embed(title="🧰 Звіт крафту", description=desc, color=discord.Color.teal())
+        embed = discord.Embed(
+            title="🧰 Звіт крафту",
+            description=desc,
+            color=discord.Color.teal()
+        )
         embed.set_footer(text="BCSD • Craft Report")
 
-        # показати 1-е фото в ембеді + посилання на інші
-        if public_urls:
-            embed.set_image(url=public_urls[0])
-            if len(public_urls) > 1:
-                rest = "\n".join(public_urls[1:5])
-                embed.add_field(name="📎 Додаткові скріншоти", value=rest, inline=False)
+        # якщо є фото — додамо перше як прев'ю (Discord дозволяє одне зображення в Embed)
+        # решту можна прикріпити як окремі повідомлення, якщо дуже треба
+        if 'saved_paths' in locals() and saved_paths:
+            embed.set_image(url=saved_paths[0])
 
         ch = bot.get_channel(CRAFT_LOG_CHANNEL_ID)
         if ch:
-            # ще й прикріпимо до 4 файлів
-            files_to_send = []
-            try:
-                for p in saved_paths[:4]:
-                    files_to_send.append(discord.File(p))
-            except Exception:
-                files_to_send = []
-            bot.loop.create_task(ch.send(embed=embed, files=files_to_send))
+            bot.loop.create_task(ch.send(embed=embed))
+            # якщо хочеш докинути решту фото окремими повідомленнями:
+            # for p in saved_paths[1:]:
+            #     bot.loop.create_task(ch.send(p))
 
         return redirect("/craft?ok=1")
 
-    # GET — віддати форму
+    # GET
     return render_template(
         "craft_report.html",
         catalog=CRAFT_ITEMS,
         role_cap=role_cap,
         levels=GUNSMITH_LEVELS
     )
+
 
 
 
