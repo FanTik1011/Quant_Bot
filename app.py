@@ -70,7 +70,6 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def user_has_any_role(member, allowed_names):
     if not member or not allowed_names:
@@ -622,12 +621,14 @@ CRAFT_ITEMS = {
     "pistol_mk2_9mm":    {"label": "Пістолет Mk 2 [9mm] (1 шт)",                   "base_cost": 30,   "is_weapon": True},
 
     # Патрони — ціна за пак 10 шт
-    "ammo_556_pack":     {"label": "Патрони [5.56x45] (пак 10 шт)",                "base_cost": 1,    "is_weapon": False},
-    "ammo_9x19_pack":    {"label": "Патрони [9x19] (пак 10 шт)",                   "base_cost": 1,    "is_weapon": False},
-    "ammo_762x39_pack":  {"label": "Патрони [7.62x39] (пак 10 шт)",                "base_cost": 1,    "is_weapon": False},
-    "ammo_338lm_pack":   {"label": "Патрони [.338 LAPUA MAGNUM] (пак 10 шт)",      "base_cost": 1,    "is_weapon": False},
-    "ammo_12_70_pack":   {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (пак 10 шт)",  "base_cost": 1,    "is_weapon": False},
-    "ammo_45acp_pack":   {"label": "Патрони [.45 ACP] (пак 10 шт)",                "base_cost": 1,    "is_weapon": False},
+# Патрони — ціна за 1 шт
+"ammo_556_pack":    {"label": "Патрони [5.56x45] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+"ammo_9x19_pack":   {"label": "Патрони [9x19] (1 шт)",    "base_cost": 0.1, "is_weapon": False},
+"ammo_762x39_pack": {"label": "Патрони [7.62x39] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+"ammo_338lm_pack":  {"label": "Патрони [.338 LAPUA MAGNUM] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+"ammo_12_70_pack":  {"label": "Патрони [12/70 MAGNUM BUCKSHOT] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+"ammo_45acp_pack":  {"label": "Патрони [.45 ACP] (1 шт)", "base_cost": 0.1, "is_weapon": False},
+
 }
 
 def compute_craft_cost(items_qty: dict, level: int):
@@ -753,7 +754,7 @@ def craft_report():
             f"📄 **Номенклатура:**\n" + ("\n".join(lines) if lines else "—") + "\n"
             f"🕒 **Дата:** `{now:%d.%m.%Y %H:%M}`\n"
             "━━━━━━━━━━━━━━━━━━━\n"
-            "_Нагадування: знижка застосовується тільки до зброї._"
+            "_Нагадування: прошу прикріпити фото докази до повідомлення._"
         )
 
         embed = discord.Embed(
