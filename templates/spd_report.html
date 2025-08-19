@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>Звіт на підвищення | SAI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --glass: rgba(15, 18, 30, .78);
+      --glass-strong: rgba(15, 18, 30, .88);
+      --border: rgba(255,255,255,.14);
+      --soft: rgba(255,255,255,.85);
+      --accent:#22c55e;
+      --accent2:#16a34a;
+      --focus: rgba(139,92,246,.25);
+    }
+    body{
+      background:
+        radial-gradient(1100px 520px at 110% -10%, rgba(88,101,242,.18), transparent 55%),
+        radial-gradient(1000px 780px at -15% 120%, rgba(14,165,233,.16), transparent 60%),
+        url("/static/bg.jpg") center/cover fixed no-repeat;
+      min-height:100vh; color:#fff; font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+      display:flex; align-items:center; justify-content:center; padding:26px;
+    }
+    .card-glass{
+      background:var(--glass);
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:24px;
+      width:100%; max-width:720px;
+      box-shadow:0 24px 64px rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+      position:relative;
+      overflow:hidden;
+    }
+    .card-glass:hover{ background:var(--glass-strong) }
+
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;
+    }
+    .title{
+      margin:0; font-weight:900; letter-spacing:.2px;
+      text-shadow:0 10px 26px rgba(0,0,0,.55);
+    }
+    .sub{ color:var(--soft); margin-top:-2px }
+
+    .btn-logout{
+      background:#dc3545; border:none; color:#fff; font-weight:700;
+      padding:.55rem .9rem; border-radius:.8rem;
+    }
+    .btn-logout:hover{ background:#b02a37 }
+
+    label{ color:#f8fafc; font-weight:700; margin-bottom:.45rem }
+    .form-text{ color:var(--soft) }
+
+    .form-control, .form-select{
+      background:#ffffff !important; color:#000 !important;
+      border:1px solid #d0d7e2 !important; border-radius:.85rem !important;
+      padding:.75rem .95rem !important; box-shadow:none !important;
+    }
+    .form-control:focus, .form-select:focus{
+      border-color:#c4b5fd !important;
+      box-shadow:0 0 0 .25rem var(--focus) !important;
+      outline:none;
+    }
+    textarea.form-control{ min-height:120px; resize:vertical }
+
+    .btn-send{
+      background:linear-gradient(90deg, var(--accent), var(--accent2));
+      border:none; color:#001b0a; font-weight:900;
+      padding:.9rem 1.1rem; border-radius:1rem; width:100%;
+      letter-spacing:.2px; transition:.2s;
+    }
+    .btn-send:hover{ transform:translateY(-1px); filter:brightness(1.05) }
+
+    .counter{
+      font-size:.9rem; color:var(--soft);
+      text-align:right; margin-top:.35rem;
+    }
+
+    .divider{ border-top:1px dashed var(--border); margin:12px 0 18px }
+  </style>
+</head>
+<body>
+  <div class="card-glass">
+    <div class="header">
+      <div>
+        <h3 class="title">🆙 Звіт на підвищення (SAI)</h3>
+        <div class="sub">BCSD Department — офіційна форма подачі</div>
+      </div>
+      <a href="/logout" class="btn btn-logout">🚪 Вийти</a>
+    </div>
+
+    <div class="divider"></div>
+
+    <form method="post" class="needs-validation" novalidate>
+      <!-- Хто подає (авто) -->
+      <div class="mb-3">
+        <label class="form-label">Хто подає</label>
+        <input class="form-control" value="{{ session['user']['username'] if session.get('user') else '' }}" disabled>
+        <div class="form-text">Бере з Discord автоматично.</div>
+      </div>
+
+      <!-- Ранги -->
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">З якого рангу</label>
+          <input name="rank_from" class="form-control" inputmode="numeric" pattern="[0-9]{1,2}" placeholder="6" required>
+          <div class="invalid-feedback">Вкажіть число (наприклад, 6).</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">На який ранг</label>
+          <input name="rank_to" class="form-control" inputmode="numeric" pattern="[0-9]{1,2}" placeholder="7" required>
+          <div class="invalid-feedback">Вкажіть число (наприклад, 7).</div>
+        </div>
+      </div>
+
+      <!-- Звіт -->
+      <div class="mt-3">
+        <label class="form-label">Звіт проробленої роботи</label>
+        <textarea id="work_report" name="work_report" class="form-control" maxlength="2000" required></textarea>
+        <div class="counter"><span id="count">0</span>/2000</div>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-send" type="submit">📤 Відправити звіт</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Bootstrap client-side validation
+    (() => {
+      'use strict';
+      const forms = document.querySelectorAll('.needs-validation');
+      Array.from(forms).forEach(form => {
+        form.addEventListener('submit', evt => {
+          if (!form.checkValidity()) {
+            evt.preventDefault();
+            evt.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    })();
+
+    // Live counter for textarea
+    const ta = document.getElementById('work_report');
+    const counter = document.getElementById('count');
+    function updateCount(){ counter.textContent = ta.value.length; }
+    ta.addEventListener('input', updateCount);
+    updateCount();
+  </script>
+</body>
+</html>

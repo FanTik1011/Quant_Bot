@@ -33,6 +33,7 @@ REDIRECT_URI  = os.getenv("DISCORD_REDIRECT_URI")
 EXAM_LOG_CHANNEL_ID    = int(os.getenv("EXAM_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 SAI_LOG_CHANNEL_ID     = int(os.getenv("SAI_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 VEHICLE_LOG_CHANNEL_ID = int(os.getenv("VEHICLE_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+SPD_LOG_CHANNEL_ID     = int(os.getenv("SPD_LOG_CHANNEL_ID", LOG_CHANNEL_ID))
 
 ALLOWED_ROLES     = [r.strip() for r in os.getenv("ALLOWED_ROLES", "").split(",") if r.strip()]
 SAI_ALLOWED_ROLES = [r.strip() for r in os.getenv("SAI_ALLOWED_ROLES", "BCSD").split(",") if r.strip()]
@@ -800,7 +801,54 @@ def craft_report():
         role_cap=role_cap,
         levels=GUNSMITH_LEVELS
     )
+    # ── SPD: звіт на підвищення ───────────────────────────────────────────────────
+@app.route("/spd", methods=["GET", "POST"])
+def spd_report():
+    if "user" not in session:
+        return redirect("/login?next=/spd")
 
+    guild = discord.utils.get(bot.guilds, id=GUILD_ID)
+    if not guild:
+        return "❌ Бот не бачить сервер."
+
+    member = discord.utils.get(guild.members, id=int(session["user"]["id"]))
+    # За потреби — поверни перевірку на ролі:
+    # if not user_has_any_role(member, SAI_ALLOWED_ROLES):
+    #     need = ", ".join(SAI_ALLOWED_ROLES)
+    #     return f"❌ У вас немає доступу до SAI (потрібна роль: {need})."
+
+    if request.method == "POST":
+        rank_from   = request.form.get("rank_from", "").strip()
+        rank_to     = request.form.get("rank_to", "").strip()
+        work_report = request.form.get("work_report", "").strip()
+
+        if not rank_from or not rank_to or not work_report:
+            return "❌ Заповніть усі обов'язкові поля.", 400
+
+        author_id   = session["user"]["id"]
+        author_name = session["user"].get("username", "Unknown")
+
+        embed = discord.Embed(
+            title="🆙 Звіт на підвищення | SPD",
+            description=(
+                "━━━━━━━━━━━━━━━━━━━\n"
+                f"🧑‍✈️ **Хто подав:** <@{author_id}> (`{author_name}`)\n"
+                f"🎖️ **Ранг:** {rank_from} → {rank_to}\n"
+                f"📝 **Звіт:** {work_report}\n"
+                f"🕒 **Дата:** `{datetime.now(ZoneInfo('Europe/Kyiv')):%d.%m.%Y}`\n"
+                "━━━━━━━━━━━━━━━━━━━"
+            ),
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="BCSD • SPD")
+
+        ch = bot.get_channel(SPD_LOG_CHANNEL_ID)
+        if ch:
+            bot.loop.create_task(ch.send(embed=embed))
+
+        return redirect("/spd?ok=1")
+
+    return render_template("spd_report.html")
 
 
 
